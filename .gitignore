@@ -1,0 +1,17 @@
+# 大檔與可由腳本重現的產物（重跑指令見 README.md 與 film/GAUNTLET.md）
+film/out_v1.mp4
+film/out_v2.mp4
+film/mix.wav
+film/mix_raw.wav
+film/music_only.wav
+film/vo44/
+film/*.log
+site/film.mp4
+
+# 線上報告原始擷圖（可用 capture.js 重現）
+online/
+
+# 部署與暫存
+.vercel
+**/.vercel/
+film/vo/

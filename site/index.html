@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Power BI 量本利分析 · 圖解導覽</title>
+<meta name="description" content="零基礎看懂一份 Power BI 量本利分析報告：賣多少才不虧？先看圖，再拖滑桿、再點、再放大。">
+<style>
+:root{--bg:#f2f5fb;--card:#fff;--ink:#0f2547;--mut:#5b6f93;--teal:#2757c9;--teal2:#3b82f6;--mint:#2fb59a;--orange:#e9792f;--line:#d6dfee;--r:18px;--sh:0 10px 30px rgba(15,37,71,.10);--red:#e0584a;--green:#1f9a6a}
+:root[data-theme=dark]{--bg:#0b1630;--card:#12254a;--ink:#e6eeff;--mut:#9fb4dc;--line:#26406e;--sh:0 10px 30px rgba(0,0,0,.4)}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:"Microsoft JhengHei","Noto Sans TC","PingFang TC",sans-serif;line-height:1.6}
+a{color:inherit}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+nav{position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;gap:6px;align-items:center;overflow-x:auto;padding:10px 20px;white-space:nowrap}
+nav b{margin-right:10px;color:var(--teal)}
+nav a{padding:6px 12px;border-radius:20px;text-decoration:none;font-size:14px;color:var(--mut)}
+nav a:hover,nav a.on{background:var(--teal);color:#fff}
+#theme{margin-left:auto;border:1px solid var(--line);background:var(--card);border-radius:20px;padding:5px 12px;font-size:13px}
+section{padding:70px 0 10px}
+h2{font-size:34px;letter-spacing:.02em;margin-bottom:6px}
+h2 small{display:inline-block;font-size:15px;font-weight:700;color:#fff;background:var(--orange);padding:2px 12px;border-radius:14px;margin-right:12px;vertical-align:middle}
+.lead{color:var(--mut);font-size:18px;margin-bottom:26px}
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);border:1px solid var(--line)}
+.hero{padding:44px 0 20px;display:grid;grid-template-columns:1fr 420px;gap:34px;align-items:center}
+.hero h1{font-size:clamp(34px,5vw,58px);line-height:1.15}
+.hero h1 span{color:var(--teal2)}
+.hero p{font-size:19px;color:var(--mut);margin:16px 0 22px}
+.flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.flow .n{padding:10px 16px;border-radius:14px;background:var(--card);border:1px solid var(--line);font-weight:800;box-shadow:var(--sh)}
+.flow i{font-style:normal;color:var(--orange);font-size:22px}
+.shot{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#fff;box-shadow:var(--sh)}
+.shot img{display:block;width:100%;height:auto}
+.zoomable{cursor:zoom-in}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:22px}
+.kpi{padding:14px 16px}
+.kpi b{display:block;font-size:28px;color:var(--teal);font-variant-numeric:tabular-nums}
+.kpi span{font-size:13px;color:var(--mut)}
+.vid{padding:10px}
+.vid video{display:block;width:100%;border-radius:12px;background:#000;aspect-ratio:16/9}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:20px;padding:5px 12px;font-size:14px;font-weight:700}
+.chip:hover{background:var(--teal);color:#fff;border-color:var(--teal)}
+.chip small{color:var(--orange);margin-right:4px;font-variant-numeric:tabular-nums}
+.chip:hover small{color:#fff}
+/* 四個字 */
+.fourcards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.fc{padding:18px;text-align:left;border:2px solid var(--line);background:var(--card);border-radius:var(--r);transition:.2s}
+.fc:hover{transform:translateY(-3px)}
+.fc[aria-pressed=true]{border-color:var(--orange);box-shadow:var(--sh)}
+.fc .z{font-size:54px;font-weight:800;line-height:1;color:var(--teal)}
+.fc h3{font-size:20px;margin:4px 0}
+.fc p{font-size:14px;color:var(--mut)}
+#fcInfo{margin-top:16px;padding:20px 26px;font-size:17px;min-height:70px}
+.stack{margin-top:18px}
+.stack .row{display:flex;height:64px;border-radius:14px;overflow:hidden;box-shadow:var(--sh);margin-bottom:10px}
+.stack .seg{display:flex;align-items:center;justify-content:center;font-weight:800;color:#07102e;font-size:16px;white-space:nowrap;overflow:hidden;transition:width .8s}
+.stack .lab{font-size:14px;color:var(--mut);margin-bottom:6px}
+/* 模擬器 */
+.sim{display:grid;grid-template-columns:340px 1fr;gap:18px}
+.panel{background:#0f2a54;color:#e8f0ff;padding:22px;border-radius:var(--r);box-shadow:var(--sh)}
+.panel h3{font-size:20px;margin-bottom:10px}
+.ctl{margin:14px 0}
+.ctl label{display:flex;justify-content:space-between;font-size:15px;color:#bcd0f5}
+.ctl output{font-weight:800;color:#fff;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:#49d0b0;margin-top:6px}
+.panel .hint{color:#9fb4dc}
+.quick{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.quick button{border:1px solid #3c5b93;background:#16356b;color:#e8f0ff;border-radius:12px;padding:6px 10px;font-size:13px;font-weight:700}
+.quick button:hover{background:#2757c9}
+.simr{padding:18px}
+.simk{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px}
+.simk div{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--bg)}
+.simk span{display:block;font-size:13px;color:var(--mut)}
+.simk b{font-size:24px;font-variant-numeric:tabular-nums}
+.simk .good b{color:var(--green)}.simk .bad b{color:var(--red)}
+#simsvg{width:100%;height:auto;display:block}
+#simj{margin-top:8px;padding:12px 16px;border-radius:12px;background:var(--bg);border-left:6px solid var(--green);font-size:16px}
+#simj.bad{border-color:var(--red)}
+/* 兩層 */
+.layers{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.layer{padding:22px;text-align:left;border:2px solid var(--line);background:var(--card);border-radius:var(--r);transition:.2s}
+.layer:hover{transform:translateY(-3px)}
+.layer[aria-pressed=true]{border-color:var(--orange);box-shadow:var(--sh)}
+.layer .ic{font-size:40px}
+.layer h3{font-size:26px;margin:4px 0 2px}
+.layer p{color:var(--mut);font-size:16px}
+.layer .q{font-size:20px;font-weight:800;color:var(--orange);margin:4px 0}
+#layerInfo{margin-top:16px;padding:20px 26px;font-size:17px;min-height:96px}
+/* 頁面 */
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.tab{padding:9px 14px;border-radius:20px;border:2px solid var(--line);background:var(--card);font-weight:700;font-size:15px}
+.tab[aria-selected=true]{background:var(--teal);color:#fff;border-color:var(--teal)}
+.rep{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:18px;align-items:start}
+.pshot{position:relative;max-width:640px;margin:0 auto}
+.hs{position:absolute;border:3px solid transparent;border-radius:8px;background:transparent;transition:.15s;padding:0}
+.hs:hover,.hs.on{border-color:var(--orange);background:rgba(233,121,47,.14)}
+.hs::after{content:"";position:absolute;right:-8px;top:-8px;width:18px;height:18px;border-radius:50%;background:var(--orange);animation:pulse 2s infinite}
+.hs.on::after{animation:none}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(233,121,47,.6)}70%{box-shadow:0 0 0 12px rgba(233,121,47,0)}100%{box-shadow:0 0 0 0 rgba(233,121,47,0)}}
+.side{padding:22px;position:sticky;top:64px}
+.side h3{font-size:22px}
+.side .qq{font-size:20px;font-weight:800;color:var(--teal);margin:6px 0 12px}
+.hint{font-size:14px;color:var(--mut);margin-top:10px}
+#hsInfo{margin-top:14px;padding:14px 16px;border-radius:12px;background:var(--bg);border:1px dashed var(--orange);font-size:15px;min-height:96px}
+/* 比較 */
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.vsc{padding:20px}
+.vsc h3{font-size:26px}
+.vsc .big{font-size:44px;font-weight:800;color:var(--teal2);margin:2px 0 6px}
+.vsc ul{margin:8px 0 0 20px;color:var(--mut)}
+.vsc .crop{margin-top:12px;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#fff}
+.vsc .crop div{width:100%;background-repeat:no-repeat}
+/* 旅程 */
+.journey{display:grid;grid-template-columns:260px 1fr;gap:20px}
+.steps{display:flex;flex-direction:column;gap:8px}
+.step{display:flex;gap:12px;align-items:center;padding:14px 16px;border-radius:14px;border:2px solid var(--line);background:var(--card);text-align:left}
+.step .no{width:34px;height:34px;border-radius:50%;background:var(--line);display:grid;place-items:center;font-weight:800;flex:none}
+.step[aria-selected=true]{border-color:var(--orange)}
+.step[aria-selected=true] .no{background:var(--orange);color:#fff}
+.stage{padding:24px;min-height:360px}
+.stage h3{font-size:24px;margin-bottom:6px}
+.stage p{color:var(--mut);margin-bottom:14px}
+table.t{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums}
+table.t th{background:var(--teal);color:#fff;padding:7px 10px;text-align:left;font-weight:700;white-space:nowrap}
+table.t td{padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.scroll{overflow-x:auto}
+code,pre{font-family:Consolas,"Cascadia Mono","Microsoft JhengHei",monospace}
+pre{background:#0b1b33;color:#cfe0f9;padding:16px 18px;border-radius:12px;font-size:14px;overflow-x:auto;line-height:1.55}
+pre .k{color:#ffd27a}pre .c{color:#7fe0c6}pre .s{color:#ff9d6b}
+.btn{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--line);background:var(--card);padding:8px 14px;border-radius:12px;font-weight:700;text-decoration:none}
+.btn.pri{background:var(--teal);color:#fff;border-color:var(--teal)}
+.btn:disabled{opacity:.45;cursor:default}
+.pill{display:inline-block;padding:3px 10px;border-radius:12px;background:var(--bg);border:1px solid var(--line);font-size:13px;margin:3px 4px 3px 0}
+/* 星狀 */
+.star{display:grid;grid-template-columns:1.7fr 1fr;gap:18px}
+.svgbox{padding:14px}
+.svgbox svg{width:100%;height:auto;display:block}
+.node{cursor:pointer}
+.node rect{transition:.15s}
+.node:hover rect,.node.on rect{stroke:var(--orange);stroke-width:4}
+.node text{pointer-events:none;font-weight:800}
+.edge{stroke:var(--teal2);stroke-width:2;fill:none;opacity:.3;transition:.2s}
+.edge.hi{opacity:1;stroke:var(--orange);stroke-width:4}
+#nodeInfo{padding:22px}
+#nodeInfo h3{font-size:24px}
+.tag{font-size:13px;font-weight:800;padding:2px 10px;border-radius:10px;color:#fff}
+.tag.f{background:var(--orange)}.tag.d{background:var(--mint)}
+/* 翻卡 */
+.flips{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.flip{perspective:900px;height:290px;border:0;background:none;text-align:left}
+.flip .in{position:relative;width:100%;height:100%;transition:transform .6s;transform-style:preserve-3d}
+.flip[aria-pressed=true] .in{transform:rotateY(180deg)}
+.flip .f,.flip .b{position:absolute;inset:0;backface-visibility:hidden;padding:20px;border-radius:var(--r);border:1px solid var(--line);box-shadow:var(--sh);overflow:auto}
+.flip .f{background:var(--card)}
+.flip .b{background:#0b1b33;color:#cfe0f9;transform:rotateY(180deg);font-size:13px}
+.flip h3{font-size:24px;color:var(--teal)}
+.flip .f .eq{font-size:20px;font-weight:800;margin-top:10px;line-height:1.5}
+.flip .f p{color:var(--mut);margin-top:8px;font-size:15px}
+.flip .f .tapme{position:absolute;right:16px;bottom:12px;font-size:13px;color:var(--orange);font-weight:800}
+/* 度量值 */
+.mbars{padding:22px}
+.mrow{display:grid;grid-template-columns:170px 1fr 40px;gap:10px;align-items:center;margin:7px 0;font-size:15px}
+.mbar{height:20px;border-radius:10px;background:var(--bg);overflow:hidden}
+.mbar i{display:block;height:100%;border-radius:10px;background:linear-gradient(90deg,var(--mint),var(--teal2));width:0;transition:width 1s}
+.mrow.disp .mbar i{background:linear-gradient(90deg,#f6b47c,var(--orange))}
+details{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:8px 0;padding:4px 18px}
+summary{cursor:pointer;font-weight:800;padding:12px 0;font-size:18px}
+details p{color:var(--mut);padding:0 0 14px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.box{padding:22px}
+.box h3{font-size:22px;margin-bottom:8px}
+.box.fact{border-top:6px solid var(--mint)}.box.warn{border-top:6px solid var(--orange)}
+.box li{margin:8px 0 8px 20px}
+.cmd{display:flex;gap:10px;align-items:stretch;margin:10px 0}
+.cmd pre{flex:1;margin:0}
+#lb{position:fixed;inset:0;background:rgba(5,12,28,.88);z-index:100;display:none;overflow:auto;cursor:zoom-out;padding:20px}
+#lb.on{display:block}
+#lb img{display:block;margin:0 auto;max-width:none;width:min(1500px,200vw);border-radius:8px;background:#fff}
+#lb .x{position:fixed;right:18px;top:12px;font-size:34px;color:#fff;background:none;border:0}
+footer{padding:50px 0 70px;color:var(--mut);font-size:14px}
+@media(max-width:900px){.journey>*,.sim>*,.star>*,.rep>*{min-width:0}.stage{overflow-x:auto}.hero,.star,.rep,.journey,.sim{grid-template-columns:1fr}.layers,.flips,.two,.vs{grid-template-columns:1fr}.fourcards{grid-template-columns:repeat(2,1fr)}.kpis,.simk{grid-template-columns:repeat(2,1fr)}.steps{flex-direction:row;overflow-x:auto}.step{flex:none}h2{font-size:27px}.side{position:static}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<nav><div class="wrap"><b>量本利 · Power BI</b>
+<a href="#top">全貌</a><a href="#film">影片</a><a href="#four">四個字</a><a href="#sim">保本模擬器</a><a href="#layers">兩層</a><a href="#pages">六個頁面</a><a href="#vs">原生vsHTML</a><a href="#journey">資料旅程</a><a href="#star">模型</a><a href="#defs">口徑</a><a href="#measures">度量值</a><a href="#glossary">小字典</a><a href="#notes">注意事項</a><a href="#run">自己打開</a>
+<button id="theme" aria-label="切換深淺色">🌓 深／淺</button></div></nav>
+
+<main class="wrap" id="top">
+<div class="hero">
+ <div>
+  <h1>賣多少，<br><span>才不虧？</span></h1>
+  <p>這是一份「量本利分析」的 Power BI 報告。<b>你不需要先懂 Power BI，也不需要先懂會計</b>——先看圖，再拖滑桿、再點、再放大，就知道它怎麼算出一條「保本線」。</p>
+  <div class="flow"><span class="n">📦 量</span><i>×</i><span class="n">🏷️ 價</span><i>−</i><span class="n">🧱 本</span><i>＝</i><span class="n">💰 利</span></div>
+  <div class="kpis">
+   <div class="kpi card"><b data-n="1418">0</b><span>萬元 · 計畫營收</span></div>
+   <div class="kpi card"><b data-n="30.7" data-d="1">0</b><span>% · 綜合邊際貢獻率</span></div>
+   <div class="kpi card"><b data-n="374">0</b><span>萬元 · 月固定成本</span></div>
+   <div class="kpi card"><b data-n="1217">0</b><span>萬元 · 保本營收</span></div>
+  </div>
+ </div>
+ <figure class="shot zoomable" data-key="p0"><img data-k="p0" alt="報告首頁：PowerBI 量本利分析，測算銷量、價格與成本變動與利潤的聯動機制，下方有四個進入頁面的按鈕"></figure>
+</div>
+<p class="hint">四個數字取自報告「公司保本與利潤模擬」頁（基準月份 2026 年 8 月）。資料為示範（模擬）資料。點圖可放大。</p>
+
+<!-- FILM -->
+<section id="film">
+ <h2><small>▶</small>影片　6 分鐘看完整份報告</h2>
+ <p class="lead">旁白＋字幕。沒時間往下捲的話，先看這支。點下面的章節可以直接跳。</p>
+ <div class="card vid"><video id="vid" controls preload="metadata" playsinline poster="poster.jpg"><source src="film.mp4" type="video/mp4">你的瀏覽器不支援影片播放。</video></div>
+ <div class="chips" id="chips"></div>
+ <p class="hint">旁白：Gemini TTS（Kore）；配樂為程式合成的柔和鋼琴與音墊（無版權疑慮）。旁白若有誤讀，以畫面字幕為準。</p>
+</section>
+
+<!-- FOUR -->
+<section id="four">
+ <h2><small>01</small>四個字：量、價、本、利</h2>
+ <p class="lead">先把四個字弄懂，整份報告就懂一半。點每一張卡。</p>
+ <div class="fourcards" role="group" aria-label="量價本利">
+  <button class="fc" aria-pressed="true" data-i="0"><div class="z">量</div><h3>銷量</h3><p>賣了幾件</p></button>
+  <button class="fc" aria-pressed="false" data-i="1"><div class="z">價</div><h3>單價</h3><p>一件賣多少</p></button>
+  <button class="fc" aria-pressed="false" data-i="2"><div class="z">本</div><h3>成本</h3><p>變動成本＋固定費用</p></button>
+  <button class="fc" aria-pressed="false" data-i="3"><div class="z">利</div><h3>利潤</h3><p>收入扣完成本剩下的</p></button>
+ </div>
+ <div class="card" id="fcInfo"></div>
+ <div class="stack card" style="padding:18px 20px">
+  <div class="lab">每賣 100 元收入（用 2026 年 8 月的比例：貢獻率 30.7%）—— 點上面的卡，看它對應哪一段</div>
+  <div class="row" id="stk1"></div>
+  <div class="lab">這 30.7 元邊際貢獻，要先去蓋固定費用，剩下的才是利潤（<b>推算</b>：固定費用 374 ÷ 營收 1,418 ≈ 26.4；利潤 62 ÷ 1,418 ≈ 4.4）</div>
+  <div class="row" id="stk2"></div>
+ </div>
+</section>
+
+<!-- SIM -->
+<section id="sim">
+ <h2><small>02</small>動手拖：保本模擬器</h2>
+ <p class="lead">這是我照報告「口徑說明」頁的公式重做的小模擬器（不是報告本身）。拖三個滑桿，看保本點在哪。</p>
+ <div class="sim">
+  <div class="panel">
+   <h3>經營假設</h3>
+   <div class="ctl"><label for="inRev">計畫月營收<output id="oRev"></output></label><input type="range" id="inRev" min="600" max="2000" step="1" value="1418"></div>
+   <div class="ctl"><label for="inCm">綜合邊際貢獻率<output id="oCm"></output></label><input type="range" id="inCm" min="15" max="45" step="0.1" value="30.7"></div>
+   <div class="ctl"><label for="inFx">月固定成本<output id="oFx"></output></label><input type="range" id="inFx" min="200" max="600" step="1" value="374"></div>
+   <div class="quick"><button data-p="rev-10">營收 −10%</button><button data-p="cm-3">貢獻率 −3 個百分點</button><button data-p="fx+10">固定費用 +10%</button><button data-p="reset">恢復基準</button></div>
+   <p class="hint" style="margin-top:14px">基準＝報告 2026 年 8 月：1,418 萬、30.7%、374 萬。貢獻率不是會計毛利率；營收變化不會自動預測價格或銷量（報告原文提醒）。</p>
+  </div>
+  <div class="card simr">
+   <div class="simk">
+    <div id="kProfit"><span>預計經營利潤（萬元）</span><b>—</b></div>
+    <div><span>保本營收（萬元）</span><b id="kBep">—</b></div>
+    <div id="kSafe"><span>安全邊際率</span><b>—</b></div>
+    <div><span>經營槓桿係數</span><b id="kLev">—</b></div>
+   </div>
+   <svg id="simsvg" viewBox="0 0 760 360" role="img" aria-label="保本模擬圖：收入線與總成本線的交叉點是保本營收"></svg>
+   <div id="simj"></div>
+   <p class="hint">公式（口徑說明頁）：邊際貢獻＝營收×貢獻率；利潤＝邊際貢獻−固定費用；保本營收＝固定費用÷貢獻率；安全邊際率＝（營收−保本營收）÷營收；槓桿＝邊際貢獻÷利潤。</p>
+  </div>
+ </div>
+</section>
+
+<!-- LAYERS -->
+<section id="layers">
+ <h2><small>03</small>兩層分析</h2>
+ <p class="lead">報告把問題分成「公司」和「單品」兩層。點每一層。</p>
+ <div class="layers" role="group" aria-label="兩層分析">
+  <button class="layer" aria-pressed="true" data-i="0"><div class="ic">🏢</div><h3>公司層</h3><div class="q">這個月要做到多少營收才不虧？</div><p>綜合貢獻率・全部固定費用・保本營收・安全邊際・利潤彈性</p></button>
+  <button class="layer" aria-pressed="false" data-i="1"><div class="ic">📦</div><h3>單品層</h3><div class="q">這個產品該怎麼定價、還值不值得投入？</div><p>單價・銷量・單位貢獻・可追溯貢獻・保本銷量</p></button>
+ </div>
+ <div class="card" id="layerInfo"></div>
+</section>
+
+<!-- PAGES -->
+<section id="pages">
+ <h2><small>04</small>六個頁面，各回答一個問題</h2>
+ <p class="lead">切換頁籤；橘色圓點是「可以點的重點」。點圖可放大成全解析度。</p>
+ <div class="tabs" role="tablist" id="ptabs"></div>
+ <div class="rep">
+  <div><div class="shot pshot" id="pshot"><img id="pimg" class="zoomable" alt=""></div>
+   <div class="hint" style="text-align:center">▲ 圖上的橘點可以點；整張圖點一下可放大。</div></div>
+  <div class="card side" id="pside"></div>
+ </div>
+</section>
+
+<!-- VS -->
+<section id="vs">
+ <h2><small>05</small>同一件事，兩種做法</h2>
+ <p class="lead">「公司量本利分析」用 Power BI 原生圖表；「公司保本與利潤模擬」用 HTML。結果相近，手感不同。</p>
+ <div class="vs">
+  <div class="card vsc"><h3>原生頁面</h3><div class="big">透明</div><ul><li>引數、DAX、圖表和篩選邏輯都在 Power BI 內，結構清楚</li><li>適合學習標準做法，也適合逐項複核</li><li>這頁的數字：1% 影響 <b>4.4</b> 萬、槓桿 <b>7.0</b></li></ul>
+   <div class="crop"><div class="zoomable" data-key="p2" style="background-image:var(--img2);aspect-ratio:1200/430;background-size:100% auto;background-position:0 0"></div></div></div>
+  <div class="card vsc"><h3>HTML 頁面</h3><div class="big">絲滑</div><ul><li>輸入、曲線、因素影響和文字判斷放在同一個工作區</li><li>可以直接輸入或拖動，調整時即時反饋</li><li>這頁的數字：1% 影響 <b>4</b> 萬（取整）、槓桿 <b>7.05</b></li></ul>
+   <div class="crop"><div class="zoomable" data-key="p3" style="background-image:var(--img3);aspect-ratio:1200/430;background-size:100% auto;background-position:0 0"></div></div></div>
+ </div>
+ <p class="hint">兩頁對同一個基準月份算出相同的保本營收（1,217 萬）；小數位不同是取整方式不同（見最下方「注意事項」）。</p>
+</section>
+
+<!-- JOURNEY -->
+<section id="journey">
+ <h2><small>06</small>一筆數字的旅程</h2>
+ <p class="lead">從 CSV 裡的一行，到你看到的一張卡片。左邊切換步驟。</p>
+ <div class="journey">
+  <div class="steps" role="tablist" aria-label="資料旅程步驟" id="steps"></div>
+  <div class="card stage" id="stage" role="tabpanel"></div>
+ </div>
+</section>
+
+<!-- STAR -->
+<section id="star">
+ <h2><small>07</small>模型：誰跟誰連在一起</h2>
+ <p class="lead">橘色＝「事實表」（發生了什麼）。綠色＝「維度表」（誰、什麼、何時）。<b>點任何一張表</b>，會亮起它連到的線。</p>
+ <div class="star">
+  <div class="card svgbox"><svg viewBox="0 0 900 560" id="starSvg" role="img" aria-label="星狀模型示意圖：三張事實表在下方，四張維度表在上方，共七條關聯"></svg></div>
+  <div class="card" id="nodeInfo"></div>
+ </div>
+ <p class="hint">連線依模型的 7 條關聯繪製（全部啟用、單向篩選）。另有 9 張輔助／引數表（敏感性軸、情景引數等）不參與關聯，這裡省略。</p>
+</section>
+
+<!-- DEFS -->
+<section id="defs">
+ <h2><small>08</small>口徑：這個數字怎麼算的</h2>
+ <p class="lead">同一個詞，換間公司算法可能不同。這份報告把算法寫成<b>可檢查的公式</b>。點卡片翻面看 DAX。</p>
+ <div class="flips" id="flips"></div>
+</section>
+
+<!-- MEASURES -->
+<section id="measures">
+ <h2><small>09</small>68 個度量值住在哪</h2>
+ <p class="lead">度量值＝存好公式的計算機按鈕。按「顯示資料夾」整理；橘色是「給畫面用」的輔助度量值。</p>
+ <div class="card mbars" id="mbars"></div>
+ <p class="hint">事實：統計自模型 INFO.MEASURES() 的 68 個度量值與其顯示資料夾（2026-10-11）。「展示輔助」含產生 HTML 頁面所需的 JSON／Dashboard 字串度量值，代表報告用 DAX 直接組出 HTML 內容。</p>
+</section>
+
+<!-- GLOSSARY -->
+<section id="glossary">
+ <h2><small>10</small>小字典</h2>
+ <details><summary>邊際貢獻和毛利有什麼不同？</summary><p>毛利＝收入扣掉「銷貨成本」，銷貨成本會含部分固定製造費用。邊際貢獻＝收入扣掉<b>全部變動成本</b>，不含任何固定費用。所以報告特別提醒：綜合貢獻率不是會計毛利率。</p></details>
+ <details><summary>什麼是「變動成本」和「固定費用」？</summary><p>變動成本跟著銷量走：材料、計件人工、變動製造費用、渠道佣金、變動履約費用。固定費用不管賣多少都要付：人員薪酬、廠房及倉儲租金、裝置折舊、行政及渠道固定服務費。</p></details>
+ <details><summary>安全邊際率是什麼意思？</summary><p>營收離保本線還有多遠，用占計畫營收的比例表示。14.2% 的意思是：營收下滑 14.2% 之內，還不會虧損。越高越安全，負值代表已經在保本線以下。</p></details>
+ <details><summary>經營槓桿係數 7.0 是什麼意思？</summary><p>＝邊際貢獻 ÷ 利潤。營收變動 1%，利潤約變動 7%（前提是貢獻率與固定費用不變）。槓桿越高，賺錢時放大得多，虧錢時也一樣。</p></details>
+ <details><summary>為什麼單品只看「可追溯貢獻」，不算產品利潤？</summary><p>共同固定費用（廠房、人員…）是整間公司一起用的，硬分攤到產品會讓決策失真。報告只扣「專屬於該產品」的固定費，得到可追溯貢獻，再判斷這個產品自己養不養得起專屬費用。</p></details>
+ <details><summary>可避免與不可避免固定費用？</summary><p>產品專屬費用在資料裡分兩類：「決策期可避免」（例如產品專職支援人員）與「決策期不可避免」（例如產品專用裝置折舊）。停止銷售時，只有可避免的那一類才真的省得下來。</p></details>
+ <details><summary>.pbip 跟 .pbix 差在哪？</summary><p>.pbix 是單一壓縮檔；.pbip 把報告拆成純文字資料夾（.Report 放頁面與圖表、.SemanticModel 放模型與 DAX），適合版本控制與讓 AI 讀懂、修改。</p></details>
+</section>
+
+<!-- NOTES -->
+<section id="notes">
+ <h2><small>11</small>看報告前，先知道這些</h2>
+ <div class="two">
+  <div class="card box fact"><h3>✅ 已確認事實</h3><ul>
+   <li><b>資料是模擬的：</b>「某電器廠商」2024 年 1 月至 2026 年 8 月，12 款產品、3 個渠道、6 個區域；金額不含稅（口徑說明頁原文）。</li>
+   <li>營收 44,502 萬與 CSV 加總 44,501.6 萬一致；固定費用 11,497 萬＝共同 9,731.2＋專屬 1,765.8（CSV 加總）。</li>
+   <li>保本營收<b>只在公司整體口徑才有值</b>：DAX 用 ISCROSSFILTERED 檢查，按產品、渠道、區域切片時留空。</li>
+   <li>單月與全期的貢獻率不同：2026 年 8 月 30.7%，全期 33.8%（經營概覽矩陣總計）；保本點會隨基準月份改變。</li>
+   <li>資料量：銷售與變動成本 6,912 列＝32 月×12 款×3 渠道×6 區域；固定費用 128 列；專屬固定費用 768 列。</li>
+  </ul></div>
+  <div class="card box warn"><h3>⚠️ 觀察／待確認</h3><ul>
+   <li><b>固定費用構成圖的四塊標示加總 16,795，與中心 11,497 不一致：</b>2,747＋3,486＋3,891＋6,671。CSV 加總 11,497 與中心數吻合；圖上分塊數字原因未查，<b>推測</b>是圖表度量值或分類設定，未向作者確認。</li>
+   <li>兩種頁面的小數不同：1% 利潤影響 4.4（原生）對 4（HTML 取整）；槓桿 7.0 對 7.05。</li>
+   <li>經營利潤每年 2 月都低於 0（圖上可見 2024、2025、2026 三年）。報表沒有說明原因，<b>推測</b>與季節性有關，未驗證。</li>
+   <li>手算 374 ÷ 30.7% ≈ 1,218，報表顯示 1,217：因為 30.7% 是四捨五入的顯示值。</li>
+   <li>本導覽的畫面取自<b>線上公開發佈版</b>（2026-10-11 擷取）。本機 .pbip 在 Desktop 中有未儲存變更，原生圖表頁在 Desktop 截圖時未渲染，因此改用線上版。</li>
+  </ul></div>
+ </div>
+ <p class="hint">以上「觀察」是我比對報表畫面、模型查詢與本機檔案後的判斷，未向原作者確認。</p>
+</section>
+
+<!-- RUN -->
+<section id="run">
+ <h2><small>12</small>自己動手：先線上看，再打開本機檔</h2>
+ <p style="font-size:18px;margin-bottom:10px">🌐 <b>線上路徑</b>（不用安裝任何東西）：公開發佈版，直接在瀏覽器操作滑桿與篩選器。</p>
+ <p style="margin-bottom:18px"><a class="btn pri" href="https://app.powerbi.com/view?r=eyJrIjoiMWJhODlmMzItZDAwMS00MGVkLTk4OTktM2I1YTZlYWJkYmEzIiwidCI6IjE2ZGVlZGU4LTc5ZTktNGUzMy05OWU2LTlkOGQzOTQyZDc5NiIsImMiOjEwfQ%3D%3D" target="_blank" rel="noopener">開啟線上報告 ↗</a></p>
+ <p style="font-size:18px;margin-bottom:6px">想拆開研究，再用本機 .pbip（需開啟「Power BI 專案」預覽功能）：</p>
+ <div class="cmd"><pre id="c1">D:\CODEX\POWER BI\PowerBI量本利分析\PowerBI量本利分析.pbip</pre><button class="btn" data-copy="c1">複製路徑</button></div>
+ <p class="hint">資料夾 data_tw 裡的 CSV 就是模型的資料來源；改路徑參數後重新整理即可。</p>
+</section>
+
+<footer>畫面取自公開發佈的 Power BI 報告（封面署名 @Ken.Liu）；資料為示範（模擬）資料，不代表任何真實公司。本頁整理自介紹文章〈賣多少才不虧？這個 Power BI 量本利分析把保本點算清楚了〉。</footer>
+</main>
+
+<div id="lb" role="dialog" aria-label="圖片放大"><button class="x" aria-label="關閉">×</button><img alt=""></div>
+
+<script>
+const IMGS={"p0": "assets/p0.jpg", "p0_s": "assets/p0_s.jpg", "p0_hi": "assets/p0_hi.jpg", "p1": "assets/p1.jpg", "p1_s": "assets/p1_s.jpg", "p1_hi": "assets/p1_hi.jpg", "p2": "assets/p2.jpg", "p2_s": "assets/p2_s.jpg", "p2_hi": "assets/p2_hi.jpg", "p3": "assets/p3.jpg", "p3_s": "assets/p3_s.jpg", "p3_hi": "assets/p3_hi.jpg", "p4": "assets/p4.jpg", "p4_s": "assets/p4_s.jpg", "p4_hi": "assets/p4_hi.jpg", "p5": "assets/p5.jpg", "p5_s": "assets/p5_s.jpg", "p5_hi": "assets/p5_hi.jpg"};
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+$$('img[data-k]').forEach(i=>i.src=IMGS[i.dataset.k]);
+document.documentElement.style.setProperty('--img2',`url(${IMGS.p2})`);
+document.documentElement.style.setProperty('--img3',`url(${IMGS.p3})`);
+/* theme */
+$('#theme').onclick=()=>{const r=document.documentElement;r.dataset.theme=r.dataset.theme==='dark'?'':'dark';try{localStorage.setItem('th',r.dataset.theme||'')}catch(e){}};
+try{const t=localStorage.getItem('th');if(t)document.documentElement.dataset.theme=t}catch(e){}
+/* count up */
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting)return;const el=e.target,n=+el.dataset.n,d=+(el.dataset.d||0);io.unobserve(el);const t0=performance.now();(function f(t){const p=Math.min(1,(t-t0)/1200),v=n*(1-Math.pow(1-p,3));el.textContent=v.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});if(p<1)requestAnimationFrame(f)})(t0)}),{threshold:.4});
+$$('[data-n]').forEach(e=>io.observe(e));
+/* lightbox：點圖放大成全解析度 */
+const lb=$('#lb');function openLb(src){$('img',lb).src=src;lb.classList.add('on');lb.scrollTop=0}
+document.addEventListener('click',e=>{const z=e.target.closest('.zoomable');if(z&&!e.target.closest('.hs')&&z.dataset.key){openLb(IMGS[z.dataset.key+'_hi']||IMGS[z.dataset.key])}});
+lb.onclick=()=>lb.classList.remove('on');document.addEventListener('keydown',e=>{if(e.key==='Escape')lb.classList.remove('on')});
+$$('[data-copy]').forEach(b=>b.onclick=async()=>{const t=$('#'+b.dataset.copy).textContent;try{await navigator.clipboard.writeText(t);b.textContent='已複製 ✓'}catch(e){b.textContent='請手動選取'}setTimeout(()=>b.textContent='複製路徑',1600)});
+const secs=$$('section');const nio=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){$$('nav a').forEach(a=>a.classList.toggle('on',a.getAttribute('href')==='#'+e.target.id))}}),{rootMargin:'-40% 0px -55% 0px'});secs.forEach(s=>nio.observe(s));
+
+/* film chapters（秒數＝影片場景起點，與 film/timeline.json 一致） */
+const CH=[["開場", 0.0], ["量價本利", 14.4], ["保本公式", 42.1], ["兩層分析", 74.4], ["首頁", 102.2], ["第1頁 經營概覽", 108.3], ["第2頁 原生", 143.7], ["第3頁 HTML", 186.6], ["第4頁 單品", 211.1], ["第5頁 口徑", 241.6], ["資料模型", 272.0], ["結語", 290.2]];
+const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+$('#chips').innerHTML=CH.map(c=>`<button class="chip" data-t="${c[1]}"><small>${fmt(c[1])}</small>${c[0]}</button>`).join('');
+$$('.chip').forEach(b=>b.onclick=()=>{const v=$('#vid');v.currentTime=+b.dataset.t;v.play().catch(()=>{});v.scrollIntoView({block:'center',behavior:'smooth'})});
+
+/* 四個字 */
+const FC=[
+ ['<b>量（銷量）：</b>這個月賣了幾件。量變大，收入和變動成本都會一起變大。在報告裡是「銷售數量」。','none'],
+ ['<b>價（單價）：</b>一件賣多少。銷量×單價＝收入（報告的「銷售收入」，已扣折扣、不含稅）。','rev'],
+ ['<b>本（成本）：</b>分兩種。<b>變動成本</b>（材料、人工…）跟著銷量走；<b>固定費用</b>（租金、折舊…）賣多賣少都要付。把它們分開，才算得出保本點。','cost'],
+ ['<b>利（利潤）：</b>收入 − 變動成本 − 固定費用。收入先扣變動成本得到「邊際貢獻」，再去蓋固定費用，剩下的才是經營利潤。','profit']];
+function seg(w,bg,t,op=1){return `<div class="seg" style="width:${w}%;background:${bg};opacity:${op}">${t}</div>`}
+function setFc(i){$$('.fc').forEach((b,j)=>b.setAttribute('aria-pressed',i===j));$('#fcInfo').innerHTML=FC[i][0];
+ const m=FC[i][1];const dim=(on)=>on?1:.28;
+ $('#stk1').innerHTML=seg(100,'#9fb7ee','收入 100 元',dim(m==='rev'||m==='none'||m==='profit'))
+ $('#stk1').innerHTML=m==='rev'?seg(100,'#7da2ff','收入 100 元（量 × 價）')
+   :seg(69.3,'#7da2ff','變動成本 約 69.3 元',dim(m==='cost'||m==='profit'||m==='none'))+seg(30.7,'#27d3ff','邊際貢獻 30.7 元',dim(m==='profit'||m==='none'));
+ $('#stk2').innerHTML=seg(86,'#ff9b4a','固定費用 26.4 元',dim(m==='cost'||m==='profit'||m==='none'))+seg(14,'#5ee0c0','利潤 4.4 元',dim(m==='profit'||m==='none'));}
+$$('.fc').forEach(b=>b.onclick=()=>setFc(+b.dataset.i));setFc(0);
+
+/* 模擬器 */
+const f1=v=>v.toLocaleString('en-US',{maximumFractionDigits:0});
+const BASE={rev:1418,cm:30.7,fx:374};
+function sim(){
+ const rev=+$('#inRev').value,cm=+$('#inCm').value/100,fx=+$('#inFx').value;
+ $('#oRev').textContent=f1(rev)+' 萬元';$('#oCm').textContent=(cm*100).toFixed(1)+' %';$('#oFx').textContent=f1(fx)+' 萬元';
+ const margin=rev*cm,profit=margin-fx,bep=cm>0?fx/cm:NaN,safe=(rev-bep)/rev,lev=profit>0?margin/profit:NaN;
+ const kp=$('#kProfit');kp.className=profit>=0?'good':'bad';kp.querySelector('b').textContent=(profit>=0?'+':'')+f1(profit);
+ $('#kBep').textContent=f1(bep);const ks=$('#kSafe');ks.className=safe>=0?'good':'bad';ks.querySelector('b').textContent=(safe*100).toFixed(1)+'%';
+ $('#kLev').textContent=isFinite(lev)?lev.toFixed(1)+' 倍':'—';
+ const j=$('#simj');j.className=profit>=0?'':'bad';
+ j.innerHTML=profit>=0?`預計盈利 <b>${f1(profit)}</b> 萬元；營收再下滑約 <b>${(safe*100).toFixed(1)}%</b>（約 ${f1(rev-bep)} 萬）就會碰到保本點。`
+   :`預計虧損 <b>${f1(-profit)}</b> 萬元；營收至少要提高到 <b>${f1(bep)}</b> 萬元（再多 ${f1(bep-rev)} 萬）才能保本。`;
+ const X=v=>50+v/2000*680,Y=v=>320-v/2000*290;let s='';
+ [0,500,1000,1500,2000].forEach(v=>{s+=`<line x1="50" x2="730" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="44" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="var(--mut)">${v}</text><text x="${X(v)}" y="340" text-anchor="middle" font-size="11" fill="var(--mut)">${v}</text>`});
+ s+=`<text x="390" y="356" text-anchor="middle" font-size="12" fill="var(--mut)">月銷售額（萬元）</text>`;
+ const yc=v=>fx+(1-cm)*v;
+ s+=`<path d="M${X(0)},${Y(0)} L${X(2000)},${Y(2000)}" stroke="#1f9a6a" stroke-width="3" fill="none"/><path d="M${X(0)},${Y(fx)} L${X(2000)},${Y(Math.min(yc(2000),2000))}" stroke="#ee6a4a" stroke-width="3" fill="none"/>`;
+ s+=`<text x="${X(2000)-4}" y="${Y(2000)+16}" text-anchor="end" font-size="12" font-weight="700" fill="#1f9a6a">收入</text><text x="${X(2000)-4}" y="${Y(Math.min(yc(2000),2000))+(yc(2000)>2000?16:-6)}" text-anchor="end" font-size="12" font-weight="700" fill="#ee6a4a">總成本</text>`;
+ if(isFinite(bep)&&bep<=2000){s+=`<line x1="${X(bep)}" x2="${X(bep)}" y1="${Y(bep)}" y2="${Y(0)}" stroke="var(--ink)" stroke-dasharray="5 5"/><circle cx="${X(bep)}" cy="${Y(bep)}" r="7" fill="var(--ink)" stroke="#fff" stroke-width="2"/><text x="${X(bep)-10}" y="${Y(bep)-12}" text-anchor="end" font-size="13" font-weight="800" fill="var(--ink)">保本 ${f1(bep)}</text>`}
+ s+=`<line x1="${X(rev)}" x2="${X(rev)}" y1="${Y(rev)}" y2="${Y(0)}" stroke="#2757c9" stroke-dasharray="2 5" stroke-width="2"/><text x="${X(rev)+6}" y="${Y(0)-8}" font-size="12" font-weight="800" fill="#2757c9">計畫營收 ${f1(rev)}</text>`;
+ $('#simsvg').innerHTML=s;}
+['inRev','inCm','inFx'].forEach(id=>$('#'+id).addEventListener('input',sim));
+$$('.quick button').forEach(b=>b.onclick=()=>{const p=b.dataset.p;
+ if(p==='reset'){$('#inRev').value=BASE.rev;$('#inCm').value=BASE.cm;$('#inFx').value=BASE.fx}
+ else if(p==='rev-10')$('#inRev').value=Math.round(BASE.rev*.9);
+ else if(p==='cm-3')$('#inCm').value=BASE.cm-3;
+ else if(p==='fx+10')$('#inFx').value=Math.round(BASE.fx*1.1);
+ sim()});
+sim();
+
+/* 兩層 */
+const LAYER=[
+ '<b>公司層（2 頁）：</b>「公司量本利分析」用 Power BI 原生滑桿與圖表；「公司保本與利潤模擬」用 HTML。重點看<b>綜合邊際貢獻率、全部固定費用、保本營收、安全邊際、經營槓桿</b>。2026 年 8 月：營收 1,418 萬、保本 1,217 萬、預計利潤 62 萬。',
+ '<b>單品層（1 頁）：</b>選定一款產品，調整價格、銷量、生產變動成本、專屬固定費，看<b>單位邊際貢獻、可追溯貢獻、專屬費用保本銷量、價格×銷量敏感性</b>。示範產品「電飯煲旗艦款」：單價 386.71 元、單位貢獻 119.02 元、保本 486 臺、計畫 2,945 臺。'];
+function setLayer(i){$$('.layer').forEach((b,j)=>b.setAttribute('aria-pressed',i===j));$('#layerInfo').innerHTML=LAYER[i]}
+$$('.layer').forEach(b=>b.onclick=()=>setLayer(+b.dataset.i));setLayer(0);
+
+/* 六個頁面（熱點座標＝頁面 1200×1500 內的像素） */
+const PG=[
+ {n:'封面',t:'報告首頁',q:'從哪裡進去？',d:'像目錄：四個按鈕通往四張主要頁面。',hs:[[76,1038,240,92,'經營概覽','先看全貌：營收、邊際貢獻、利潤、安全邊際的趨勢與來源。'],[326,1038,244,92,'公司量本利分析','原生圖表版：三個滑桿調整營收、貢獻率、固定費用。'],[76,1140,240,92,'公司保本與利潤模擬','HTML 版模擬器：輸入或拖動計畫營收等三個假設。'],[326,1140,244,92,'單品貢獻與保本模擬','選一款產品，看單位貢獻與專屬費用保本銷量。']]},
+ {n:'第 1 頁',t:'經營概覽',q:'整體經營現在怎樣？',d:'全期（32 個月）的收入、貢獻、利潤與安全邊際，再按產品、渠道、區域看貢獻來源。',hs:[[30,200,1145,112,'四個總覽數字','銷售收入 44,502、邊際貢獻 15,051、經營利潤 3,554（萬元）、安全邊際率 23.6%。'],[30,355,705,240,'經營利潤趨勢','每年 2 月都低於 0（2024、2025、2026）。原因報表沒說，需回到資料查。'],[748,355,425,240,'固定費用構成','中心 11,497 萬。注意：四塊標示加總 16,795 與中心不一致，見「注意事項」。'],[30,615,705,205,'哪些月份接近保本','安全邊際率逐月。低於 0% 的月份就是虧損月。'],[748,615,425,210,'渠道邊際貢獻','電商直營 7,734、經銷 4,392、企業團購 2,926（萬元）。'],[610,850,565,320,'每 100 元渠道收入留下多少','電商直營貢獻率 35.3%（成本占 55.0%）；經銷 31.0%（成本占 66.6%）。'],[30,850,570,320,'哪些產品貢獻最多','空氣炸鍋標準款 1,892.1 萬最高。'],[610,1190,565,280,'產品系列 × 渠道 × 貢獻率','全期總計 33.8%；電熱水壺系列 35.3% 最高。']]},
+ {n:'第 2 頁',t:'公司量本利分析（原生）',q:'營收、貢獻率、固定費用變了，利潤和保本點怎麼動？',d:'全用 Power BI 原生視覺物件。三個數值引數＋基準月份切片器，度量值同步重算。',hs:[[24,106,865,97,'三個引數','營收調整（%）、綜合貢獻率調整（百分點）、固定費用調整（%）；右邊「恢復基準」回到 0。'],[22,211,1153,140,'四張情景卡','營收 1,418、綜合邊際貢獻率 30.7%、固定成本 374、預計經營利潤 62（萬元）。'],[21,431,1152,590,'盈虧平衡分析','收入線與總成本線的交叉點＝保本營收 1,217 萬；假設營收 1,418 在其右側。'],[22,1030,1153,140,'四個判斷指標','保本營收 1,217、安全邊際率 14.2%、營收 1% 的利潤影響 4.4、經營槓桿 7.0。'],[16,1183,577,300,'經營假設對利潤的影響','調整引數後，把利潤變化拆成營收／貢獻率／固定費三個因素（基準時全是 0）。'],[604,1183,572,300,'利潤敏感性','營收 ±、貢獻率 ± 的 5×5 利潤矩陣，紅＝虧、綠＝賺。']]},
+ {n:'第 3 頁',t:'公司保本與利潤模擬（HTML）',q:'同樣的分析，能不能更直覺地玩？',d:'同一組假設改用 HTML 呈現：輸入框＋滑桿，圖和判斷文字即時變。',hs:[[25,155,1148,115,'四張卡','計畫營收 1,418、貢獻率 30.7%、固定成本底線 374（共同 317／專屬 57）、保本銷售額 1,217。'],[28,282,300,552,'經營假設面板','計畫月營收、綜合邊際貢獻率、月固定成本；下方小字提醒貢獻率不是毛利率。'],[345,282,830,552,'保本線圖','交點＝保本；綠色區域為盈利區、紅色為虧損區；預計經營利潤 62 萬。'],[365,730,790,75,'四個指標','安全邊際率 14.2%、營收 1% 影響 4 萬、經營槓桿 7.05 倍、保本等效銷量 40,488 臺。'],[28,850,1148,280,'利潤影響條','營收／貢獻率／固定成本各自對利潤的影響（基準時為 0）。'],[608,1140,568,305,'經營判斷','用白話寫出：預計盈利、離保本多遠、可承受多少營收下滑。']]},
+ {n:'第 4 頁',t:'單品貢獻與保本模擬',q:'這個產品該怎麼定價？還值不值得投入？',d:'選一款產品，調整價格、銷量、生產變動成本和專屬固定費，看可追溯貢獻。共同固定費用不分攤。',hs:[[740,28,370,70,'產品與基準月份','產品切片器（示範：電飯煲旗艦款）與基準月份。'],[25,165,1138,110,'五張單品卡','單價 386.71、單位邊際貢獻 119.02、CM% 30.8%、邊際貢獻總額 35 萬、可追溯貢獻 29 萬。'],[24,288,300,845,'四個旋鈕','價格、預計銷量、單位生產變動成本、專屬固定費用（各 ±%）。'],[340,288,820,430,'專屬費用保本線','邊際貢獻線與專屬固定費的交叉＝保本 486 臺；計畫銷量 2,945 臺。'],[360,708,790,180,'假設對可追溯貢獻的影響','價格／銷量／生產成本／專屬固定費各自影響多少萬元。'],[25,1150,615,315,'價格 × 銷量敏感性','價格與銷量一起變時，可追溯貢獻增減多少。'],[657,1150,505,315,'經營判斷','白話結論＋提醒：銷量變化是管理假設，不是需求預測。']]},
+ {n:'第 5 頁',t:'口徑說明',q:'這些數字到底怎麼算？',d:'集中解釋資料背景、分析思路、指標口徑和頁面用法。',hs:[[33,308,1135,270,'01 兩種模擬','公司量本利分析（原生引數）與單品貢獻（HTML）各怎麼用。'],[33,651,1135,314,'02 六個頁面','每頁解決什麼問題。'],[33,1072,551,306,'公司口徑','邊際貢獻、綜合貢獻率、保本營收、安全邊際率、經營利潤的公式。'],[617,1072,551,306,'單品口徑','單位邊際貢獻、可追溯貢獻、保本數量；並提醒不應憑分攤後的產品利潤決定砍品。']]}];
+const pt=$('#ptabs');let curP=0,curH=-1;
+PG.forEach((p,i)=>{const b=document.createElement('button');b.className='tab';b.setAttribute('role','tab');b.textContent=(i?'第 '+i+' 頁 ':'封面 ')+p.t.replace(/（.*）/,'');b.onclick=()=>setPage(i);pt.appendChild(b)});
+function setPage(i){curP=i;curH=-1;$$('.tab').forEach((b,j)=>b.setAttribute('aria-selected',i===j));
+ const p=PG[i];const im=$('#pimg');im.src=IMGS['p'+i];im.dataset.key='p'+i;im.alt=`${p.n}：${p.t}`;
+ $$('#pshot .hs').forEach(e=>e.remove());
+ p.hs.forEach((h,k)=>{const d=document.createElement('button');d.className='hs';d.style.cssText=`left:${h[0]/12}%;top:${h[1]/15}%;width:${h[2]/12}%;height:${h[3]/15}%`;d.setAttribute('aria-label',h[4]);d.onclick=e=>{e.stopPropagation();setHs(k)};$('#pshot').appendChild(d)});
+ $('#pside').innerHTML=`<span class="pill">${p.n}</span><h3>${p.t}</h3><div class="qq">${p.q}</div><p>${p.d}</p><div id="hsInfo">👆 點圖上的橘色圓點，看這一塊在說什麼。</div><div style="margin-top:12px;display:flex;gap:8px"><button class="btn" ${i?'':'disabled'} onclick="setPage(${i-1})">← 上一頁</button><button class="btn pri" ${i<PG.length-1?'':'disabled'} onclick="setPage(${i+1})">下一頁 →</button></div>`;}
+function setHs(k){curH=k;const h=PG[curP].hs[k];$$('#pshot .hs').forEach((e,j)=>e.classList.toggle('on',j===k));$('#hsInfo').innerHTML=`<b>${h[4]}</b><br>${h[5]}`}
+setPage(0);
+
+/* 旅程 */
+const J=[
+ {t:'① 原始資料：一列＝一個月 × 一款產品 × 一個渠道 × 一個區域',p:'這是「事實_銷售與變動成本.csv」2026-08 的真實三列（節錄；產品、渠道、區域已由代號換成名稱）。每一列是一個最小單位的銷售結果，還看不出保本點。',h:`<div class="scroll"><table class="t"><tr><th>月份</th><th>產品</th><th>渠道</th><th>區域</th><th>銷量</th><th>銷售收入</th><th>直接材料</th><th>計件人工</th><th>變動製造</th><th>渠道佣金</th><th>履約費</th></tr>
+<tr><td>2026-08</td><td>電飯煲旗艦款</td><td>經銷渠道</td><td>華東</td><td>263</td><td>91,207.08</td><td>53,181.05</td><td>7,083.25</td><td>4,707.96</td><td>1,094.48</td><td>815.30</td></tr>
+<tr><td>2026-08</td><td>電飯煲旗艦款</td><td>經銷渠道</td><td>華南</td><td>241</td><td>83,136.05</td><td>47,959.79</td><td>6,490.73</td><td>4,314.14</td><td>997.63</td><td>747.10</td></tr>
+<tr><td>2026-08</td><td>電飯煲旗艦款</td><td>經銷渠道</td><td>華北</td><td>175</td><td>60,883.98</td><td>35,070.65</td><td>4,713.19</td><td>3,132.68</td><td>730.61</td><td>542.50</td></tr></table></div>
+<p class="hint">全表 6,912 列＝32 月 × 12 款 × 3 渠道 × 6 區域。第一列的邊際貢獻（推算）＝91,207.08 − 變動成本合計 66,882.04 ＝ 24,325.04 元，貢獻率約 26.7%。</p>`},
+ {t:'② 載入：CSV 進入模型',p:'資料夾 data_tw 裡每張表一份 CSV（另有兩份 Power BI 自動日期表）。換電腦只要讓路徑對得上。',h:`<pre><span class="c">data_tw\\</span>
+  事實_銷售與變動成本.csv      <span class="s"># 6,912 列</span>
+  事實_固定費用.csv            <span class="s"># 128 列</span>
+  事實_產品專屬固定費用.csv    <span class="s"># 768 列</span>
+  維度_產品.csv  維度_渠道.csv  維度_區域.csv  維度_日期.csv
+  輔助_／數值引數_／選擇_ …    <span class="s"># 模擬用的輔助表</span></pre>`},
+ {t:'③ 建模：把表連起來',p:'銷售表用「產品編碼、渠道編碼、區域編碼、月份日期」連到四張維度表。固定費用只連日期。',h:`<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:17px;line-height:2.2"><span class="pill">事實_銷售與變動成本</span>──產品編碼──▶<span class="pill">維度_產品</span><br><span class="pill">事實_銷售與變動成本</span>──渠道編碼──▶<span class="pill">維度_渠道</span><br><span class="pill">事實_銷售與變動成本</span>──區域編碼──▶<span class="pill">維度_區域</span><br><span class="pill">事實_固定費用</span>──月份日期──▶<span class="pill">維度_日期</span></div><p class="hint">共 7 條關聯，全部啟用、單向篩選。固定費用沒有連到產品，所以不會被分攤到產品。</p>`},
+ {t:'④ 計算：DAX 寫成一條規則',p:'保本銷售額＝固定費用 ÷ 邊際貢獻率；而且只在「沒有按產品、渠道、區域切片」時才有值。',h:`<pre><span class="c">保本銷售額</span> =
+<span class="k">IF</span>(
+    <span class="k">NOT</span> ( <span class="k">ISCROSSFILTERED</span> ( '維度_產品' )
+        || <span class="k">ISCROSSFILTERED</span> ( '維度_渠道' )
+        || <span class="k">ISCROSSFILTERED</span> ( '維度_區域' ) )
+        &amp;&amp; [邊際貢獻率] &gt; 0,
+    <span class="k">DIVIDE</span> ( [固定費用], [邊際貢獻率] )
+)</pre><p class="hint">取自模型的度量值「保本銷售額」原文（僅縮排整理）。</p>`},
+ {t:'⑤ 呈現：變成你看到的卡片',p:'同一條規則，放進卡片、折線、曲線與矩陣。你調滑桿或切片器，它們一起變。',h:`<div class="shot zoomable" data-key="p3" style="max-height:340px;overflow:hidden"><img data-k="p3" alt="公司保本與利潤模擬頁：計畫營收 1,418 萬、貢獻率 30.7%、固定成本 374 萬、保本銷售額 1,217 萬四張卡" style="margin-top:-8%"></div>`}];
+const stepsEl=$('#steps');
+J.forEach((s,i)=>{const b=document.createElement('button');b.className='step';b.setAttribute('role','tab');b.innerHTML=`<span class="no">${i+1}</span><span>${s.t.replace(/^.\s/,'').split('：')[0]}</span>`;b.onclick=()=>setStep(i);stepsEl.appendChild(b)});
+function setStep(i){$$('.step').forEach((b,j)=>b.setAttribute('aria-selected',i===j));const s=J[i];$('#stage').innerHTML=`<h3>${s.t}</h3><p>${s.p}</p>${s.h}<div style="margin-top:16px;display:flex;gap:8px"><button class="btn" ${i?'':'disabled'} onclick="setStep(${i-1})">← 上一步</button><button class="btn pri" ${i<J.length-1?'':'disabled'} onclick="setStep(${i+1})">下一步 →</button></div>`;$$('#stage img[data-k]').forEach(im=>im.src=IMGS[im.dataset.k])}
+setStep(0);
+
+/* 星狀模型 */
+const FACT={sl:['事實_銷售與變動成本','6,912','月份 × 產品 × 渠道 × 區域：銷售數量、原價、折扣、銷售收入、直接材料、計件人工、變動製造費用、渠道佣金、變動履約費用、所需工時（邊際貢獻、貢獻率從這裡算）'],
+ fx:['事實_固定費用','128','月份 × 費用專案（4 項）：固定人員薪酬、廠房及倉儲租金、裝置折舊、行政及渠道固定服務費；歸屬口徑＝公司共同費用，不在產品或渠道分攤'],
+ sp:['事實_產品專屬固定費用','768','月份 × 產品 × 費用專案（2 項）：產品專職支援人員（決策期可避免）、產品專用裝置折舊（決策期不可避免）；單品「可追溯貢獻」從這裡扣']};
+const DIM={prod:['維度_產品','12','產品名稱・產品系列（電熱水壺／電飯煲／空氣炸鍋／破壁機）・檔次（基礎／標準／旗艦）・標準售價・變動成本標準'],
+ ch:['維度_渠道','3','經銷渠道、電商直營、企業團購'],rg:['維度_區域','6','華東、華南、華北、華中、西南、東北'],dt:['維度_日期','1,096','完整連續日期；所有事實以月初日期連線，頁面只按完整月份分析']};
+const POS={prod:[130,90],ch:[340,90],rg:[560,90],dt:[770,90],sp:[210,420],sl:[470,420],fx:[730,420]};
+const ED=[['sl','prod'],['sl','ch'],['sl','rg'],['sl','dt'],['sp','prod'],['sp','dt'],['fx','dt']];
+const svg=$('#starSvg');let h='';
+ED.forEach(([f,d],i)=>{const a=POS[f],b=POS[d],y1=a[1]-30,y2=b[1]+30,my=(y1+y2)/2;h+=`<path class="edge" data-f="${f}" data-d="${d}" d="M${a[0]},${y1} C${a[0]},${my} ${b[0]},${my} ${b[0]},${y2}"/>`});
+Object.entries(DIM).forEach(([k,v])=>{const p=POS[k];h+=`<g class="node" data-k="${k}" tabindex="0" role="button" aria-label="${v[0]}"><rect x="${p[0]-95}" y="${p[1]-30}" width="190" height="60" rx="12" fill="#d9f4ec" stroke="#2fb59a" stroke-width="2"/><text x="${p[0]}" y="${p[1]-4}" text-anchor="middle" font-size="16" fill="#0f2547">${v[0]}</text><text x="${p[0]}" y="${p[1]+18}" text-anchor="middle" font-size="13" fill="#4a5f9a">${v[1]} 筆</text></g>`});
+Object.entries(FACT).forEach(([k,v])=>{const p=POS[k];h+=`<g class="node" data-k="${k}" tabindex="0" role="button" aria-label="${v[0]}"><rect x="${p[0]-110}" y="${p[1]-30}" width="220" height="60" rx="12" fill="#ffe9d6" stroke="#e9792f" stroke-width="2"/><text x="${p[0]}" y="${p[1]-4}" text-anchor="middle" font-size="16" fill="#0f2547">${v[0]}</text><text x="${p[0]}" y="${p[1]+18}" text-anchor="middle" font-size="13" fill="#4a5f9a">${v[1]} 列</text></g>`});
+svg.innerHTML=h;
+function setNode(k){$$('.node',svg).forEach(n=>n.classList.toggle('on',n.dataset.k===k));$$('.edge',svg).forEach(e=>e.classList.toggle('hi',e.dataset.f===k||e.dataset.d===k));
+ const isF=!!FACT[k],v=isF?FACT[k]:DIM[k];const links=ED.filter(([f,d])=>f===k||d===k).map(([f,d])=>(isF?DIM[d][0]:FACT[f][0]));
+ $('#nodeInfo').innerHTML=`<span class="tag ${isF?'f':'d'}">${isF?'事實表':'維度表'}</span><h3 style="margin-top:6px">${v[0]}</h3><p style="color:var(--mut);margin:6px 0">${v[1]} ${isF?'列':'筆'}</p><p>${v[2]}</p><div style="margin-top:10px">${links.map(l=>`<span class="pill">連到 ${l}</span>`).join('')}</div>`}
+$$('.node',svg).forEach(n=>{n.onclick=()=>setNode(n.dataset.k);n.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setNode(n.dataset.k)}}});
+setNode('sl');
+
+/* 口徑翻卡 */
+const DEF=[
+ {t:'邊際貢獻',eq:'銷售收入 − 全部變動成本',p:'收入扣掉跟著銷量走的成本，剩下的錢先拿去蓋固定費用。',dax:'<span class="c">// 口徑說明頁</span>\n邊際貢獻 = 銷售收入 − 全部變動成本\n變動成本 = 材料 + 計件人工 + 變動製造\n         + 渠道佣金 + 變動履約'},
+ {t:'綜合貢獻率',eq:'總邊際貢獻 ÷ 總銷售收入',p:'每 100 元收入留下多少「蓋固定費用」的錢。按銷售額加權，推演時預設產品結構不變。',dax:'<span class="c">// 口徑說明頁</span>\n綜合貢獻率 = 總邊際貢獻 ÷ 總銷售收入\n2026 年 8 月 ≈ 30.7%（全期 33.8%）'},
+ {t:'公司保本營收',eq:'全部固定費用 ÷ 綜合貢獻率',p:'營收至少做到這個數，邊際貢獻才剛好蓋住固定費用。',dax:'<span class="c">保本銷售額</span> =\n<span class="k">IF</span>( NOT(ISCROSSFILTERED(產品)\n      || ISCROSSFILTERED(渠道)\n      || ISCROSSFILTERED(區域))\n   &amp;&amp; [邊際貢獻率] &gt; 0,\n   <span class="k">DIVIDE</span>( [固定費用], [邊際貢獻率] ) )'},
+ {t:'安全邊際率',eq:'（計畫營收 − 保本營收）÷ 計畫營收',p:'營收還能下滑多少比例，才會碰到保本點。',dax:'<span class="c">安全邊際率</span> =\n<span class="k">IF</span>( NOT ISBLANK([保本銷售額]),\n   <span class="k">DIVIDE</span>( [銷售收入] − [保本銷售額],\n           [銷售收入] ) )'},
+ {t:'經營利潤',eq:'邊際貢獻 − 公司共同費 − 產品專屬費',p:'全部固定費用（共同＋專屬）都扣完之後的利潤。',dax:'<span class="c">經營利潤</span> =\n<span class="k">IF</span>( NOT(ISCROSSFILTERED(產品)\n      || ISCROSSFILTERED(渠道)\n      || ISCROSSFILTERED(區域)),\n   [邊際貢獻] − [固定費用] )'},
+ {t:'經營槓桿係數',eq:'邊際貢獻 ÷ 利潤',p:'營收變 1%，利潤約變幾 %。只有利潤為正才有定義。',dax:'<span class="c">公司經營槓桿係數</span> =\n<span class="k">IF</span>( [公司情景利潤萬元] &gt; 0,\n   <span class="k">DIVIDE</span>(\n     [公司情景營收萬元] * [公司情景貢獻率],\n     [公司情景利潤萬元] ) )'}];
+$('#flips').innerHTML=DEF.map((d,i)=>`<button class="flip" aria-pressed="false" data-i="${i}"><div class="in"><div class="f"><h3>${d.t}</h3><div class="eq">${d.eq}</div><p>${d.p}</p><span class="tapme">點一下看 DAX ↻</span></div><div class="b"><pre style="background:none;padding:0;margin:0;white-space:pre-wrap">${d.dax}</pre></div></div></button>`).join('');
+$$('.flip').forEach(b=>b.onclick=()=>b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')!=='true'));
+
+/* 度量值分布 */
+const MB=[['公司原生模擬（含 3 個引數）',24],['經營基礎',14],['單品決策',9],['邊際貢獻',6],['展示輔助（HTML／顏色／說明）',6,1],['情景模擬・基準',5],['其他（固定費用、保本與安全邊際、公司共同費）',4]];
+$('#mbars').innerHTML=MB.map(m=>`<div class="mrow ${m[2]?'disp':''}"><span>${m[0]}</span><div class="mbar"><i data-w="${m[1]/24*100}"></i></div><b>${m[1]}</b></div>`).join('');
+const mio=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){$$('.mbar i',e.target).forEach(i=>i.style.width=i.dataset.w+'%')}}),{threshold:.3});mio.observe($('#mbars'));
+</script>
+</body>
+</html>

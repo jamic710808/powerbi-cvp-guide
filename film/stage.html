@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<title>Power BI 量本利分析 · 圖解導覽（影片舞台）</title>
+<style>
+:root{--bg0:#070d2b;--cyan:#27d3ff;--ink:#0b1a52;--ink2:#4a5f9a;--orange:#ff9b4a;--mint:#5ee0c0;--gold:#ffd27a;--red:#ff7a8a}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#070d2b;font-family:"Microsoft JhengHei","Noto Sans TC","PingFang TC",sans-serif;color:#fff}
+#stage{position:absolute;inset:0;overflow:hidden;background:radial-gradient(1500px 950px at 70% 15%,#1b348f 0%,#101c5c 42%,#070d2b 100%)}
+#grid{position:absolute;inset:-100px;opacity:.09;background-image:linear-gradient(#8fb4ff 1px,transparent 1px),linear-gradient(90deg,#8fb4ff 1px,transparent 1px);background-size:80px 80px}
+.orb{position:absolute;border-radius:50%;filter:blur(90px);opacity:.35}
+#tag{position:absolute;left:60px;top:30px;font-size:22px;letter-spacing:.14em;color:#a9c4ff;z-index:50;display:flex;align-items:center;gap:30px}
+#tag i{width:14px;height:14px;border-radius:3px;background:var(--cyan);display:inline-block;box-shadow:18px 0 0 -2px var(--orange)}
+#pg{position:absolute;left:760px;top:24px;z-index:50;font-size:24px;font-weight:800;color:#07102e;background:var(--cyan);padding:2px 20px;border-radius:18px;opacity:0;white-space:nowrap}
+#step{position:absolute;right:60px;top:32px;font-size:22px;color:#a9c4ff;letter-spacing:.12em;z-index:50}
+#badge{position:absolute;right:190px;top:26px;z-index:50;font-size:21px;font-weight:800;color:#07102e;background:var(--gold);padding:3px 16px;border-radius:16px}
+#prog{position:absolute;left:0;bottom:0;height:5px;background:linear-gradient(90deg,var(--cyan),var(--orange));z-index:60}
+#sub{position:absolute;left:0;right:0;bottom:44px;text-align:center;z-index:55;height:66px}
+#sub span{display:inline-block;padding:10px 34px;border-radius:40px;background:rgba(4,10,34,.78);font-size:40px;letter-spacing:.06em;line-height:1.25;backdrop-filter:blur(6px);max-width:1800px}
+.scene{position:absolute;inset:0;opacity:0;will-change:transform,opacity}
+.win{position:absolute;left:60px;top:90px;width:1800px;height:810px;border-radius:22px;overflow:hidden;background:#0d1642;box-shadow:0 40px 90px rgba(0,0,0,.55),0 0 0 2px rgba(255,255,255,.12)}
+.cam{position:absolute;left:0;top:0;width:1200px;height:1500px;transform-origin:0 0}
+.cam img{position:absolute;left:0;top:0;width:1200px;height:1500px;display:block}
+.spot{position:absolute;border:4px solid var(--orange);border-radius:10px;box-shadow:0 0 0 4000px rgba(5,12,40,.30);opacity:0}
+.cap{position:absolute;left:60px;top:908px;max-width:1800px;padding:6px 26px 6px 22px;border-radius:14px;background:rgba(255,255,255,.97);color:var(--ink);border-left:10px solid var(--orange);font-size:34px;font-weight:800;letter-spacing:.03em;opacity:0;box-shadow:0 10px 30px rgba(0,0,0,.35);white-space:nowrap;line-height:1.3}
+.big{position:absolute;font-weight:800;letter-spacing:.02em}
+.card{position:absolute;border-radius:22px;background:rgba(255,255,255,.97);color:var(--ink);box-shadow:0 22px 60px rgba(0,0,0,.4)}
+.mono{font-family:Consolas,"Cascadia Mono","Microsoft JhengHei",monospace}
+</style></head>
+<body><div id="stage">
+<div id="grid"></div>
+<div class="orb" id="o1" style="width:520px;height:520px;background:#1b8fd6;left:-120px;top:600px"></div>
+<div class="orb" id="o2" style="width:420px;height:420px;background:#ff9b4a;right:-80px;top:-100px;opacity:.16"></div>
+<div id="tag"><i></i>POWER BI · 量本利分析 · 圖解導覽</div>
+<div id="pg"></div>
+<div id="badge">示範資料（模擬）</div><div id="step"></div>
+<div id="scenes"></div>
+<div id="sub"><span></span></div>
+<div id="prog"></div>
+</div>
+<script>
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)), lerp=(a,b,t)=>a+(b-a)*t;
+const eIO=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2, eO=t=>1-Math.pow(1-clamp(t),3), eOB=t=>{t=clamp(t);const c=1.5;return 1+(c+1)*Math.pow(t-1,3)+c*Math.pow(t-1,2)};
+const IMG=i=>`../assets/p${i}_film.jpg`;
+let TL, S={}, SC={};
+const IW=1200, IH=1500, AW=1800, AH=810, MAXZ=3.4;
+
+/* 句界：旁白從 sc.A 開始，句長以字數比例估計；字幕與鏡頭共用 */
+function clausesOf(sc){ const parts=sc.text.replace(/\s+/g,' ').split(/(?<=[，。？：；])/).map(s=>s.trim()).filter(Boolean);
+  const tot=parts.reduce((a,p)=>a+p.length,0); let acc=0; const A=.5+(sc.lead||0), V=sc.vo;
+  return parts.map(p=>{const t0=A+V*acc/tot; acc+=p.length; return {t0,t1:A+V*acc/tot,text:p.replace(/[，。？：；]$/,'')};}); }
+const ct=(k,i,d=0,f=0)=>{const c=SC[k].cl[i]; return c.t0+f*(c.t1-c.t0)+d;};
+
+/* 螢幕視窗 + 鏡頭 + 聚光框 + 說明列（座標＝頁面 1200×1500） */
+function camOf(r){let [x,y,w,h]=r; if(w<1100){w*=1.05;h*=1.05;} return {s:Math.min(AW/w,AH/h,MAXZ),cx:x+r[2]/2,cy:y+r[3]/2};}
+function place(s,cx,cy){
+  const pw=IW*s, ph=IH*s; let tx=AW/2-cx*s, ty=AH/2-cy*s;
+  tx= pw<=AW ? (AW-pw)/2 : Math.min(0,Math.max(AW-pw,tx));
+  ty= ph<=AH ? (AH-ph)/2 : Math.min(0,Math.max(AH-ph,ty));
+  return [tx,ty];}
+const WHOLE=[0,0,1200,1500];
+function shotScene(k,pg,label,shots,masks=[]){
+  const el=document.createElement('div'); el.className='scene';
+  el.innerHTML=`<div class="win"><div class="cam"><img src="${IMG(pg)}">${masks.map(m=>`<div style="position:absolute;left:${m[0]}px;top:${m[1]}px;width:${m[2]}px;height:${m[3]}px;border-radius:10px;background:repeating-linear-gradient(45deg,#e3e8f3,#e3e8f3 14px,#d3dbec 14px,#d3dbec 28px);display:flex;align-items:center;justify-content:center;text-align:center;color:#4a5f9a;font-weight:800;font-size:20px;line-height:1.35;padding:20px">${m[4]}</div>`).join('')}<div class="spot"></div></div></div><div class="cap"></div>`;
+  const cam=el.querySelector('.cam'), spot=el.querySelector('.spot'), cap=el.querySelector('.cap');
+  let ready=false; const TR=.7;
+  function prep(){ let prev=-1; shots.forEach((s,i)=>{ s.T = s.t!=null ? s.t : ct(k,s.c,s.d||0,s.f||0); s.T=Math.max(s.T,prev+.05); prev=s.T; if(!s.cam) s.cam=shots[i-1].cam; }); ready=true; }
+  function upd(tl,D){
+    if(!ready) prep();
+    let i=0; for(let j=0;j<shots.length;j++) if(tl>=shots[j].T) i=j;
+    const cur=shots[i], t0=cur.T, p=i===0?1:eIO(clamp((tl-t0)/TR));
+    const a=camOf(i===0?cur.cam:shots[i-1].cam), b=camOf(cur.cam);
+    const drift=1+.04*tl/D;
+    const s=Math.exp(lerp(Math.log(a.s),Math.log(b.s),p))*drift, cx=lerp(a.cx,b.cx,p)+8*(tl/D-.5), cy=lerp(a.cy,b.cy,p);
+    const [tx,ty]=place(s,cx,cy); cam.style.transform=`translate(${tx}px,${ty}px) scale(${s})`;
+    const sp=cur.spot, prev=i>0?shots[i-1].spot:null, same=sp&&prev&&sp.every((v,n)=>v===prev[n]);
+    let rect=null, al=0;
+    if(same){rect=sp;al=1;}
+    else if(sp&&prev){ if(p<.35){rect=prev;al=1-p/.35;} else if(p>.65){rect=sp;al=(p-.65)/.35;} }
+    else if(sp){rect=sp;al=clamp((tl-t0-.3)/.35);}
+    else if(prev){rect=prev;al=1-clamp((tl-t0)/.25);}
+    if(rect&&al>0){
+      spot.style.left=rect[0]+'px';spot.style.top=rect[1]+'px';spot.style.width=rect[2]+'px';spot.style.height=rect[3]+'px';
+      spot.style.borderWidth=(4/s)+'px';spot.style.borderRadius=(10/s)+'px';
+      spot.style.boxShadow=`0 0 0 4000px rgba(5,12,40,${.30*al})`; spot.style.opacity=al;
+    } else spot.style.opacity=0;
+    if(cap.dataset.t!==(cur.cap||'')){cap.textContent=cur.cap||''; cap.dataset.t=cur.cap||'';}
+    const end=(i+1<shots.length?shots[i+1].T:D); cap.style.opacity=cur.cap?clamp((tl-t0-.1)/.3)*clamp((end-tl)/.2):0;
+    cap.style.transform=`translateY(${(1-eO((tl-t0-.1)/.45))*14}px)`;
+  }
+  return {el,upd,label};
+}
+const mkCard=(host,css,html)=>{const d=document.createElement('div');d.className='card';d.style.cssText=css;d.innerHTML=html;host.appendChild(d);return d;};
+const PAGES=['首頁','經營概覽','公司量本利分析','公司保本與利潤模擬','單品貢獻與保本模擬','口徑說明'];
+const NS='http://www.w3.org/2000/svg';
+const sv=(host,tag,attrs)=>{const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);host.appendChild(e);return e;};
+
+function build(){
+  const host=document.getElementById('scenes');
+
+  /* s01 開場：銷售額漲、利潤沒漲 → 下個月至少多少營收 → 標題 */
+  { const el=document.createElement('div'); el.className='scene';
+    el.innerHTML=`<div class="win" style="left:1130px;top:100px;width:648px;height:810px;border-radius:20px"><img id="s1bg" src="${IMG(0)}" style="position:absolute;left:0;top:0;width:648px;height:810px;transform-origin:50% 40%"></div>
+    <div class="card" id="s1a" style="left:80px;top:130px;width:960px;height:330px;opacity:0"></div>
+    <div class="big" id="s1b" style="left:84px;top:500px;width:1000px;font-size:62px;line-height:1.25;color:#fff;opacity:0">下個月，至少要做到<span style="color:var(--orange)">多少營收</span>，<br>才不會虧？</div>
+    <div class="big" id="s1c" style="left:84px;top:720px;font-size:104px;line-height:1.1;opacity:0">量本利分析</div>
+    <div class="big" id="s1d" style="left:90px;top:858px;font-size:42px;font-weight:700;color:var(--cyan);letter-spacing:.14em;opacity:0">POWER BI · 6 張頁面　把保本點算清楚</div>`;
+    host.appendChild(el);
+    const a=el.querySelector('#s1a');
+    a.innerHTML=`<svg viewBox="0 0 960 330" width="960" height="330">
+      <text x="40" y="60" font-size="34" font-weight="800" fill="#0b1a52">銷售額漲了…</text>
+      <rect id="rv0" x="60" y="230" width="150" height="30" rx="6" fill="#7da2ff"/><rect id="rv1" x="60" y="190" width="150" height="70" rx="6" fill="#7da2ff" opacity="0"/>
+      <rect id="rv2" x="260" y="230" width="150" height="30" rx="6" fill="#2757c9"/>
+      <text x="135" y="290" font-size="26" text-anchor="middle" fill="#4a5f9a">去年</text><text x="335" y="290" font-size="26" text-anchor="middle" fill="#4a5f9a">今年</text>
+      <text x="215" y="150" font-size="30" font-weight="800" fill="#2757c9">營收 ▲</text>
+      <rect x="540" y="215" width="120" height="45" rx="6" fill="#ffb98a"/><rect x="700" y="215" width="120" height="45" rx="6" fill="#ff9b4a"/>
+      <text x="600" y="290" font-size="26" text-anchor="middle" fill="#4a5f9a">去年</text><text x="760" y="290" font-size="26" text-anchor="middle" fill="#4a5f9a">今年</text>
+      <text x="680" y="150" font-size="30" font-weight="800" fill="#c8581a">利潤 ➜ ？</text>
+      <text x="540" y="60" font-size="34" font-weight="800" fill="#0b1a52">利潤沒跟著漲？</text></svg>`;
+    // 為什麼用示意長條：只表達「營收上升、利潤持平」的問題意識，不代表報表真實數字
+    S.s01={el,label:'',upd:(tl,D)=>{
+      const bg=el.querySelector('#s1bg'); bg.style.transform=`scale(${1+.05*tl/D})`;
+      const t0=.2, a1=ct('s01',0,-.1);
+      a.style.opacity=clamp((tl-t0)/.4); a.style.transform=`translateY(${(1-eO((tl-t0)/.5))*30}px)`;
+      const g=eIO(clamp((tl-a1-.3)/1.2)); const r1=a.querySelector('#rv1'); r1.setAttribute('opacity',1); r1.setAttribute('y',230-30-70*g); r1.setAttribute('height',30+70*g);
+      a.querySelector('#rv2').setAttribute('y',230-70*g); a.querySelector('#rv2').setAttribute('height',30+70*g); r1.setAttribute('opacity',0);
+      const b=el.querySelector('#s1b'), tb=ct('s01',2,-.1); b.style.opacity=clamp((tl-tb)/.4); b.style.transform=`translateY(${(1-eO((tl-tb)/.5))*24}px)`;
+      const c=el.querySelector('#s1c'), tc=ct('s01',5,-.1); c.style.opacity=clamp((tl-tc)/.35); c.style.transform=`scale(${.9+.1*eOB((tl-tc)/.6)}) translateY(${(1-eO((tl-tc)/.5))*20}px)`;
+      const d=el.querySelector('#s1d'), td=ct('s01',6,-.1); d.style.opacity=clamp((tl-td)/.4);
+    }}; }
+
+  /* s02 量、價、本、利：用每 100 元收入拆開 */
+  { const el=document.createElement('div'); el.className='scene';
+    el.innerHTML=`<div class="big" style="left:0;right:0;top:76px;text-align:center;font-size:58px">量・價・本・利</div><div id="s2c"></div>
+      <svg id="s2svg" width="1920" height="1080" style="position:absolute;left:0;top:0"></svg>`;
+    host.appendChild(el); const cc=el.querySelector('#s2c'), svg=el.querySelector('#s2svg');
+    const Q=[['量','銷量','#27d3ff'],['價','單價','#7da2ff'],['本','成本','#ff9b4a'],['利','利潤','#5ee0c0']];
+    const cards=Q.map((q,i)=>mkCard(cc,`left:${230+i*360}px;top:170px;width:320px;height:150px;border-top:10px solid ${q[2]};opacity:0;display:flex;align-items:center;justify-content:center;gap:20px`,
+      `<span style="font-size:96px;font-weight:800;color:#0b1a52">${q[0]}</span><span style="font-size:40px;font-weight:800;color:#4a5f9a">${q[1]}</span>`));
+    const eq=document.createElement('div'); eq.className='big'; eq.style.cssText='left:230px;top:335px;width:1460px;text-align:center;font-size:46px;opacity:0;white-space:nowrap';
+    eq.innerHTML='量 <span style="color:var(--orange)">×</span> 價 <span style="color:var(--orange)">＝</span> 收入'; cc.appendChild(eq);
+    // 每 100 元收入（2026 年 8 月：貢獻率 30.7%）→ 棒子 x:210..1710 = 100 元
+    const X0=210,W=1500,u=W/100;
+    const bar1=document.createElement('div'); bar1.style.cssText='position:absolute;left:210px;top:470px;width:1500px;height:110px;opacity:0'; cc.appendChild(bar1);
+    bar1.innerHTML=`<div style="position:absolute;left:0;top:-48px;font-size:34px;font-weight:800;color:#dbe6ff">每賣 100 元收入（2026 年 8 月的比例；變動成本 ＝ 100 − 30.7，推算）</div>
+      <div id="vc" style="position:absolute;left:0;top:0;width:${69.3*u}px;height:110px;border-radius:14px 0 0 14px;background:#7da2ff;color:#07102e;font-size:38px;font-weight:800;display:flex;align-items:center;justify-content:center;white-space:nowrap">變動成本　約 69.3 元</div>
+      <div id="cm" style="position:absolute;left:${69.3*u}px;top:0;width:${30.7*u}px;height:110px;border-radius:0 14px 14px 0;background:#27d3ff;color:#07102e;font-size:36px;font-weight:800;display:flex;align-items:center;justify-content:center;white-space:nowrap">邊際貢獻 30.7 元</div>`;
+    const note1=document.createElement('div'); note1.className='big'; note1.style.cssText='left:210px;top:600px;font-size:30px;font-weight:700;color:#a9c4ff;opacity:0;white-space:nowrap';
+    note1.innerHTML='🔧 變動成本：材料、人工…　<b style="color:var(--gold)">跟著銷量走</b>　　　　　　　　　 🏢 固定費用：租金、折舊…　<b style="color:var(--gold)">賣多賣少都要付</b>'; cc.appendChild(note1);
+    const bar2=document.createElement('div'); bar2.style.cssText=`position:absolute;left:${210+69.3*u}px;top:700px;width:${30.7*u}px;height:110px;opacity:0`; cc.appendChild(bar2);
+    bar2.innerHTML=`<div style="position:absolute;left:-${69.3*u}px;top:20px;width:${69.3*u-24}px;text-align:right;font-size:34px;font-weight:800;color:#dbe6ff">邊際貢獻要先去蓋固定費用 ▶</div>
+      <div id="fx" style="position:absolute;left:0;top:0;width:${26.4*u}px;height:110px;border-radius:14px 0 0 14px;background:#ff9b4a;color:#07102e;font-size:32px;font-weight:800;display:flex;align-items:center;justify-content:center;white-space:nowrap">固定費用 26.4</div>
+      <div id="pf" style="position:absolute;left:${26.4*u}px;top:0;width:${4.3*u}px;height:110px;border-radius:0 14px 14px 0;background:#5ee0c0;color:#07102e;font-size:30px;font-weight:800;white-space:nowrap"><span style="position:absolute;left:calc(100% + 14px);top:30px;font-size:36px;color:#5ee0c0">利潤 4.4</span></div>`;
+    const note2=document.createElement('div'); note2.className='big'; note2.style.cssText='left:210px;top:830px;font-size:27px;font-weight:700;color:#a9c4ff;opacity:0;white-space:nowrap';
+    note2.textContent='換算（推算）：固定費用 374 ÷ 營收 1,418 ≈ 26.4；利潤 62 ÷ 1,418 ≈ 4.4（單位：元／每 100 元收入）'; cc.appendChild(note2);
+    S.s02={el,label:'',upd:(tl,D)=>{
+      cards.forEach((c,i)=>{const st=.35+i*.18,v=eOB((tl-st)/.5);c.style.opacity=clamp((tl-st)/.25);c.style.transform=`translateY(${(1-v)*50}px)`;
+        const hot=(i<2&&tl>=ct('s02',3,-.1)&&tl<ct('s02',5,-.2))||(i===2&&tl>=ct('s02',5,-.1)&&tl<ct('s02',11,-.2))||(i===3&&tl>=ct('s02',13,-.1));
+        c.style.boxShadow=hot?'0 0 0 6px #ff9b4a,0 24px 60px rgba(0,0,0,.5)':'';});
+      const te=ct('s02',3,-.1); eq.style.opacity=clamp((tl-te)/.4)*clamp((ct('s02',5,-.2)-tl)/.3+.0); eq.style.transform=`translateY(${(1-eO((tl-te)/.5))*16}px)`;
+      const tb=ct('s02',5,-.1); bar1.style.opacity=clamp((tl-tb)/.4); bar1.style.transform=`scaleX(${.3+.7*eO((tl-tb)/.7)})`; bar1.style.transformOrigin='0 50%';
+      const cmEl=bar1.querySelector('#cm'); cmEl.style.opacity=tl<ct('s02',11,-.3)?.25:1;
+      note1.style.opacity=clamp((tl-ct('s02',8,-.2))/.5)*(tl<ct('s02',13,-.2)?1:.35);
+      const t2=ct('s02',8,-.2); bar2.style.opacity=clamp((tl-t2)/.4); bar2.style.transform=`scaleX(${.2+.8*eO((tl-t2)/.8)})`; bar2.style.transformOrigin='100% 50%';
+      const pf=bar2.querySelector('#pf'); const tpf=ct('s02',13,-.1); pf.style.opacity=clamp((tl-tpf)/.4); pf.style.boxShadow=tl>=ct('s02',15,-.1)?'0 0 0 6px #ffd27a':'';
+      note2.style.opacity=clamp((tl-tpf)/.5);
+    }}; }
+
+  /* s03 保本公式：收入線 × 總成本線 → 保本點 → 安全邊際 */
+  { const el=document.createElement('div'); el.className='scene';
+    el.innerHTML=`<div class="big" style="left:90px;top:76px;font-size:56px">保本 ＝ 收入剛好等於總成本</div>
+      <div class="card" style="left:60px;top:170px;width:1040px;height:730px;padding:0;overflow:hidden"><svg id="s3svg" viewBox="0 0 1040 730" width="1040" height="730"></svg></div>
+      <div id="s3f"></div>`;
+    host.appendChild(el); const svg=el.querySelector('#s3svg'), ff=el.querySelector('#s3f');
+    // 圖面：x 0..2000 萬 → 80..1000 px；y 0..2000 → 660..60 px
+    const X=v=>80+v/2000*920, Y=v=>660-v/2000*600;
+    [0,500,1000,1500,2000].forEach(v=>{sv(svg,'line',{x1:80,x2:1000,y1:Y(v),y2:Y(v),stroke:'#e1e8f6','stroke-width':1.5});
+      const t=sv(svg,'text',{x:70,y:Y(v)+7,'text-anchor':'end','font-size':20,fill:'#6a7bb0'}); t.textContent=v.toLocaleString();
+      const t2=sv(svg,'text',{x:X(v),y:690,'text-anchor':'middle','font-size':20,fill:'#6a7bb0'}); t2.textContent=v.toLocaleString();});
+    const ax=sv(svg,'text',{x:540,y:722,'text-anchor':'middle','font-size':22,fill:'#4a5f9a'}); ax.textContent='月銷售額（萬元）';
+    const rev=sv(svg,'path',{d:`M${X(0)},${Y(0)} L${X(2000)},${Y(2000)}`,stroke:'#1f9a6a','stroke-width':6,fill:'none'});
+    const cost=sv(svg,'path',{d:`M${X(0)},${Y(374)} L${X(2000)},${Y(374+0.693*2000)}`,stroke:'#ee6a4a','stroke-width':6,fill:'none'});
+    const lr=sv(svg,'text',{x:X(2000)-8,y:Y(2000)+30,'text-anchor':'end','font-size':26,'font-weight':800,fill:'#1f9a6a'}); lr.textContent='收入';
+    const lc=sv(svg,'text',{x:X(2000)-8,y:Y(1760)+34,'text-anchor':'end','font-size':26,'font-weight':800,fill:'#ee6a4a'}); lc.textContent='總成本';
+    const lf=sv(svg,'text',{x:X(0)+10,y:Y(374)-12,'font-size':24,'font-weight':800,fill:'#c8581a'}); lf.textContent='起點＝固定費用 374';
+    const bx=X(1217), by=Y(1217), px=X(1418);
+    const vl=sv(svg,'line',{x1:bx,x2:bx,y1:by,y2:660,stroke:'#0b1a52','stroke-width':3,'stroke-dasharray':'8 7'});
+    const dot=sv(svg,'circle',{cx:bx,cy:by,r:13,fill:'#0b1a52',stroke:'#fff','stroke-width':4});
+    const lb=sv(svg,'text',{x:bx-16,y:by-26,'text-anchor':'end','font-size':26,'font-weight':800,fill:'#0b1a52'}); lb.textContent='保本點 1,217 萬';
+    const pl=sv(svg,'line',{x1:px,x2:px,y1:Y(1418),y2:660,stroke:'#2757c9','stroke-width':3,'stroke-dasharray':'3 6'});
+    const pt=sv(svg,'text',{x:px+10,y:Y(1418)+60,'font-size':26,'font-weight':800,fill:'#2757c9'}); pt.textContent='計畫營收 1,418';
+    const br=sv(svg,'path',{d:`M${bx},${660-26} L${px},${660-26}`,stroke:'#e9792f','stroke-width':6,fill:'none'});
+    const bt=sv(svg,'text',{x:(bx+px)/2,y:660-40,'text-anchor':'middle','font-size':24,'font-weight':800,fill:'#c8581a'}); bt.textContent='安全邊際 ≈ 201';
+    [rev,cost].forEach(p=>{const L=p.getTotalLength();p.setAttribute('stroke-dasharray',L);p.dataset.L=L;});
+    // 公式卡
+    mkCard(ff,'left:1130px;top:170px;width:730px;height:730px;padding:26px 34px',`
+      <div style="font-size:30px;font-weight:800;color:#4a5f9a">① 保本營收的公式</div>
+      <div id="f1" style="font-size:46px;font-weight:800;line-height:1.25;margin:10px 0 18px;opacity:0">保本營收 <span style="color:#e9792f">＝</span><br>固定費用 <span style="color:#e9792f">÷</span> 邊際貢獻率</div>
+      <div style="font-size:30px;font-weight:800;color:#4a5f9a">② 代入 2026 年 8 月</div>
+      <div id="f2" style="font-size:46px;font-weight:800;line-height:1.3;margin:8px 0 6px;opacity:0">374 <span style="color:#e9792f">÷</span> 30.7% <span style="color:#e9792f">≈</span> <span style="color:#1f9a6a">1,217</span> 萬</div>
+      <div id="f2n" style="font-size:23px;color:#4a5f9a;opacity:0;margin-bottom:16px">報表顯示 1,217（貢獻率為四捨五入，手算約 1,218）</div>
+      <div style="font-size:30px;font-weight:800;color:#4a5f9a">③ 安全邊際率</div>
+      <div id="f3" style="font-size:40px;font-weight:800;line-height:1.3;margin-top:8px;opacity:0">（1,418 − 1,217）÷ 1,418<br><span style="color:#e9792f">＝</span> <span style="color:#1f9a6a">14.2%</span>　營收下滑這麼多才碰到保本</div>`);
+    S.s03={el,label:'',upd:(tl,D)=>{
+      const t0=ct('s03',0,-.1),t1=ct('s03',1,-.1);
+      const q=eIO(clamp((tl-t0)/1.3)); rev.setAttribute('stroke-dashoffset',rev.dataset.L*(1-q)); cost.setAttribute('stroke-dashoffset',cost.dataset.L*(1-eIO(clamp((tl-t0-.5)/1.3))));
+      [lr,lc,lf].forEach(e=>e.setAttribute('opacity',clamp((tl-t0-1.2)/.5)));
+      const f1=ff.querySelector('#f1'),tf=ct('s03',2,-.1); f1.style.opacity=clamp((tl-tf)/.4); f1.style.transform=`translateY(${(1-eO((tl-tf)/.5))*16}px)`;
+      const f2=ff.querySelector('#f2'),t2=ct('s03',6,-.1); f2.style.opacity=clamp((tl-t2)/.4); f2.style.transform=`translateY(${(1-eO((tl-t2)/.5))*16}px)`;
+      ff.querySelector('#f2n').style.opacity=clamp((tl-ct('s03',9,-.1))/.5);
+      const tp=ct('s03',9,-.1); const qd=clamp((tl-tp)/.5); [vl,dot,lb].forEach(e=>e.setAttribute('opacity',qd)); dot.setAttribute('r',13*(1+.3*Math.sin(clamp((tl-tp)/1.2)*Math.PI)));
+      const tpl=ct('s03',10,-.1); [pl,pt].forEach(e=>e.setAttribute('opacity',clamp((tl-tpl)/.4)));
+      const tb=ct('s03',11,-.1); [br,bt].forEach(e=>e.setAttribute('opacity',clamp((tl-tb)/.4)));
+      const f3=ff.querySelector('#f3'),t3=ct('s03',12,-.1); f3.style.opacity=clamp((tl-t3)/.4); f3.style.transform=`translateY(${(1-eO((tl-t3)/.5))*16}px)`;
+    }}; }
+
+  /* s04 兩層 + 六頁地圖 */
+  { const el=document.createElement('div'); el.className='scene';
+    el.innerHTML=`<div class="big" style="left:0;right:0;top:70px;text-align:center;font-size:54px">兩層分析，六張頁面</div><div id="s4c"></div>`;
+    host.appendChild(el); const cc=el.querySelector('#s4c');
+    const L=[
+      {t:'公司層',q:'這個月要做到多少營收才不虧？',s:'綜合貢獻率・全部固定費用・保本營收・安全邊際・利潤彈性',col:'#27d3ff',x:90,c:1},
+      {t:'單品層',q:'這個產品該怎麼定價？還值不值得投入？',s:'單價・銷量・單位貢獻・可追溯貢獻・保本銷量',col:'#ff9b4a',x:990,c:3}];
+    const lc=L.map(l=>mkCard(cc,`left:${l.x}px;top:150px;width:840px;height:250px;padding:18px 30px;border-top:12px solid ${l.col};opacity:0`,
+      `<div style="font-size:44px;font-weight:800">${l.t}</div><div style="font-size:34px;font-weight:800;color:#c8581a;margin:2px 0 8px">${l.q}</div><div style="font-size:25px;color:#4a5f9a;line-height:1.4">${l.s}</div>`));
+    const TW=268,TH=335,gx=26,x0=(1920-(6*TW+5*gx))/2; const th=[];
+    PAGES.forEach((n,i)=>{const d=mkCard(cc,`left:${x0+i*(TW+gx)}px;top:440px;width:${TW}px;height:${TH+72}px;padding:8px;opacity:0;overflow:hidden`,
+      `<div style="width:${TW-16}px;height:${TH-8}px;border-radius:8px;overflow:hidden;background:#0d1642"><img src="${IMG(i)}" style="width:100%;display:block"></div>
+       <div style="display:flex;align-items:center;gap:8px;margin-top:6px"><span style="font-size:20px;font-weight:800;color:#fff;background:${i<2?'#27d3ff':(i<4?'#27a8d6':'var(--orange)')};border-radius:16px;padding:2px 10px;white-space:nowrap">${i?'第'+i+'頁':'封面'}</span></div>
+       <div style="font-size:22px;font-weight:800;color:var(--ink);margin-top:2px;white-space:nowrap">${n}</div>`);th.push(d);});
+    S.s04={el,label:'',upd:(tl,D)=>{
+      lc.forEach((c,i)=>{const st=ct('s04',L[i].c,-.2),v=eOB((tl-st)/.5);c.style.opacity=clamp((tl-st)/.3);c.style.transform=`translateY(${(1-v)*40}px)`;});
+      th.forEach((c,i)=>{const st=.5+i*.12,v=eOB((tl-st)/.5);c.style.opacity=clamp((tl-st)/.3);c.style.transform=`translateY(${(1-v)*50}px)`;
+        const fN=clamp((tl-ct('s04',7,-.05))/(ct('s04',8,0)-ct('s04',7,-.05))); const seq=tl>=ct('s04',7,-.05)&&tl<ct('s04',8,0)?Math.min(4,Math.floor(fN*5)):(tl>=ct('s04',8,0)?5:-1);
+        const hot=(i===2||i===3)&&tl>=ct('s04',1,-.1)&&tl<ct('s04',3,-.2)||(i===4)&&tl>=ct('s04',3,-.1)&&tl<ct('s04',6,-.2)||(seq>=0&&i===seq);
+        c.style.boxShadow=hot?'0 0 0 6px #ff9b4a,0 24px 60px rgba(0,0,0,.5)':'';});
+    }}; }
+
+  /* s05 首頁 */
+  S.s05=shotScene('s05',0,'封面 · 報告首頁',[
+    {t:0,cam:WHOLE,spot:null,cap:null},
+    {c:0,d:-.3,cam:[40,980,640,300],spot:[70,1030,505,210],cap:'首頁：四個按鈕，進入四張主要頁面'},
+    {c:2,d:-.1,spot:[70,1030,505,210],cap:'經營概覽・公司量本利分析・公司保本與利潤模擬・單品貢獻與保本模擬'}]);
+
+  /* s06 經營概覽（第 1 頁）：固定費用構成圖分塊數字與中心不一致 → 遮蔽並標示待確認 */
+  S.s06=shotScene('s06',1,'第 1 頁 · 經營概覽',[
+    {t:0,cam:WHOLE,spot:null,cap:null},
+    {c:0,d:-.4,cam:[0,0,1200,350],spot:null,cap:'第 1 頁：經營概覽（2024/1 – 2026/8）'},
+    {c:2,d:-.1,cam:[0,0,1200,350],spot:[30,105,280,78],cap:'預設範圍：整份資料，32 個月'},
+    {c:3,d:-.1,cam:[0,150,1200,200],spot:[32,203,272,108],cap:'銷售收入 44,502 萬元（約 4.45 億）'},
+    {c:4,d:-.1,spot:[320,203,275,108],cap:'邊際貢獻 15,051 萬元'},
+    {c:5,d:-.1,spot:[608,203,275,108],cap:'經營利潤 3,554 萬元'},
+    {c:6,d:-.1,spot:[897,203,275,108],cap:'安全邊際率 23.6%'},
+    {c:7,d:-.2,cam:[20,350,730,250],spot:[30,355,705,240],cap:'經營利潤趨勢（萬元）'},
+    {c:8,d:0,f:0,spot:[70,468,70,70],cap:'2024 年 2 月：低於 0'},
+    {c:8,d:0,f:.4,spot:[318,468,70,70],cap:'2025 年 2 月：低於 0'},
+    {c:8,d:0,f:.75,spot:[566,468,70,70],cap:'2026 年 2 月：低於 0'},
+    {c:9,d:-.1,spot:[30,355,705,240],cap:'為什麼？報表沒說，要回到資料查（不下結論）'},
+    {c:10,d:-.2,cam:[745,610,435,225],spot:[748,615,425,210],cap:'渠道邊際貢獻（萬元）'},
+    {c:11,d:-.1,spot:[815,665,370,32],cap:'電商直營 7,734 萬最高（經銷 4,392、團購 2,926）'},
+    {c:12,d:-.3,cam:[605,850,575,320],spot:[615,935,550,50],cap:'電商直營：貢獻率 35.3%（成本占 55.0%）'},
+    {c:13,d:-.1,spot:[615,1065,550,50],cap:'經銷渠道：貢獻率 31.0%（成本占 66.6%）'}],
+    [[748,355,425,240,'固定費用構成圖<br>分塊數字與中心 11,497 不一致<br>（待確認，影片不引用）']]);
+
+  /* s07 公司量本利分析（第 2 頁，原生） */
+  S.s07=shotScene('s07',2,'第 2 頁 · 公司量本利分析（原生）',[
+    {t:0,cam:WHOLE,spot:null,cap:null},
+    {c:1,d:-.6,cam:[0,0,1200,420],spot:null,cap:'第 2 頁：公司量本利分析（Power BI 原生圖表）'},
+    {c:3,d:-.1,cam:[0,60,1200,170],spot:[24,106,865,97],cap:'三個引數滑桿'},
+    {c:4,d:0,f:0,spot:[24,106,280,97],cap:'營收調整（%）'},
+    {c:4,d:0,f:.45,spot:[317,106,276,97],cap:'綜合貢獻率調整（百分點）'},
+    {c:4,d:0,f:.85,spot:[607,106,282,97],cap:'固定費用調整（%）'},
+    {c:6,d:-.2,cam:[0,200,1200,830],spot:null,cap:'卡片、保本曲線、矩陣，一起重算'},
+    {c:8,d:-.2,cam:[0,200,1200,170],spot:null,cap:'基準：2026 年 8 月（實際）'},
+    {c:9,d:-.1,spot:[24,211,277,140],cap:'營收 1,418 萬元'},
+    {c:10,d:-.1,spot:[314,211,277,140],cap:'綜合邊際貢獻率 30.7%'},
+    {c:11,d:-.1,spot:[605,211,277,140],cap:'固定成本 374 萬元'},
+    {c:12,d:-.1,spot:[896,211,277,140],cap:'預計經營利潤 62 萬元'},
+    {c:13,d:-.2,cam:[20,430,1160,600],spot:[705,670,70,66],cap:'收入線與總成本線的交叉點＝保本點'},
+    {c:15,d:-.1,cam:[20,430,1160,600],spot:[705,670,70,66],cap:'保本營收 1,217 萬元'},
+    {c:16,d:-.2,cam:[0,1000,1200,200],spot:[893,1030,282,138],cap:'經營槓桿係數 7.0'},
+    {c:17,d:-.1,spot:[603,1030,282,138],cap:'營收變動 1% → 利潤約變動 4.4 萬元'}]);
+
+  /* s08 公司保本與利潤模擬（第 3 頁，HTML） */
+  S.s08=shotScene('s08',3,'第 3 頁 · 公司保本與利潤模擬（HTML）',[
+    {t:0,cam:WHOLE,spot:null,cap:null},
+    {c:0,d:-.5,cam:[0,90,1200,760],spot:null,cap:'第 3 頁：公司保本與利潤模擬（HTML 模擬器）'},
+    {c:3,d:-.1,cam:[20,280,340,560],spot:[28,282,300,552],cap:'左：直接輸入或拖動三個經營假設'},
+    {c:4,d:-.1,cam:[340,280,840,560],spot:[345,282,830,552],cap:'保本交點、盈虧區域跟著變'},
+    {c:4,d:0,f:.55,cam:[20,840,1160,300],spot:[28,850,1148,280],cap:'利潤影響條、經營判斷也一起重算'},
+    {c:6,d:-.2,cam:[28,690,300,150],spot:[48,732,262,42],cap:'小字：貢獻率不是會計毛利率'},
+    {c:8,d:-.1,spot:[48,732,262,42],cap:'營收變化不會自動預測價格或銷量'}]);
+
+  /* s09 單品貢獻與保本模擬（第 4 頁） */
+  S.s09=shotScene('s09',4,'第 4 頁 · 單品貢獻與保本模擬',[
+    {t:0,cam:WHOLE,spot:null,cap:null},
+    {c:0,d:-.4,cam:[0,90,1200,760],spot:null,cap:'第 4 頁：單品貢獻與保本模擬'},
+    {c:2,d:-.1,cam:[20,0,1160,300],spot:[740,28,170,70],cap:'選一款產品（示範：電飯煲旗艦款）'},
+    {c:3,d:-.1,cam:[20,150,1160,140],spot:[25,165,215,108],cap:'單價 386.71 元／臺（不含稅）'},
+    {c:4,d:-.1,spot:[255,165,215,108],cap:'單位邊際貢獻 119.02 元（貢獻率 30.8%）'},
+    {c:5,d:-.2,cam:[20,150,1160,560],spot:[950,378,130,26],cap:'計畫銷量 2,945 臺'},
+    {c:6,d:-.1,spot:[715,165,215,108],cap:'邊際貢獻總額 35 萬元'},
+    {c:7,d:-.1,spot:[362,630,230,65],cap:'情景專屬固定費 6 萬元'},
+    {c:8,d:-.1,spot:[945,165,215,108],cap:'可追溯貢獻 29 萬元（35 − 6）'},
+    {c:9,d:-.1,spot:[625,630,230,65],cap:'專屬費用保本銷量 486 臺'},
+    {c:11,d:-.4,cam:[24,800,330,170],spot:[44,860,262,62],cap:'共同固定費用仍由公司整體承擔'},
+    {c:12,d:-.1,cam:[20,150,1160,560],spot:[945,165,215,108],cap:'看的是「可追溯貢獻」，不是產品利潤'}]);
+
+  /* s10 口徑說明（第 5 頁） */
+  S.s10=shotScene('s10',5,'第 5 頁 · 口徑說明',[
+    {t:0,cam:WHOLE,spot:null,cap:null},
+    {c:0,d:-.4,cam:[0,0,1200,300],spot:null,cap:'第 5 頁：閱讀指南與計算口徑'},
+    {c:2,d:-.1,cam:[30,1070,1140,330],spot:[33,1072,551,306],cap:'03 關鍵公式與判斷邊界・公司口徑'},
+    {c:3,d:-.1,spot:[50,1140,420,28],cap:'邊際貢獻 ＝ 銷售收入 − 全部變動成本'},
+    {c:6,d:-.1,spot:[50,1168,420,28],cap:'綜合貢獻率 ＝ 總邊際貢獻 ÷ 總銷售收入'},
+    {c:9,d:-.1,spot:[50,1194,500,62],cap:'保本營收 ＝ 固定費用 ÷ 貢獻率；安全邊際率 ＝（計畫 − 保本）÷ 計畫'},
+    {c:11,d:-.2,cam:[0,0,1200,300],spot:[36,78,700,50],cap:'資料為模擬值；金額不含稅'},
+    {c:12,d:-.1,cam:[30,1360,1140,140],spot:[40,1418,720,34],cap:'保本分析用於經營決策，不等於稅後淨利'}]);
+
+  /* s11 資料模型：3 張事實表 × 4 張維度表 × 7 條關聯 */
+  { const el=document.createElement('div'); el.className='scene';
+    el.innerHTML=`<div class="big" style="left:0;right:0;top:76px;text-align:center;font-size:54px">資料模型：3 張事實表 × 4 張維度表</div><svg id="s11svg" width="1920" height="1080" style="position:absolute;left:0;top:0"></svg><div id="s11n"></div>`;
+    host.appendChild(el); const svg=el.querySelector('#s11svg'), nn=el.querySelector('#s11n');
+    const D=[{k:'prod',x:330,y:330,zh:'維度_產品',n:'12 款（4 系列 × 3 檔）'},{k:'ch',x:760,y:330,zh:'維度_渠道',n:'3 個'},{k:'rg',x:1160,y:330,zh:'維度_區域',n:'6 個'},{k:'dt',x:1590,y:330,zh:'維度_日期',n:'1,096 天'}];
+    const F=[{k:'sp',x:520,y:790,zh:'事實_產品專屬固定費用',n:'768 列＝32月×12款×2項'},{k:'sl',x:1010,y:790,zh:'事實_銷售與變動成本',n:'6,912 列＝32月×12款×3渠道×6區域'},{k:'fx',x:1530,y:790,zh:'事實_固定費用',n:'128 列＝32月×4項'}];
+    const E=[['sl','prod'],['sl','ch'],['sl','rg'],['sl','dt'],['sp','prod'],['sp','dt'],['fx','dt']];
+    const dd=Object.fromEntries(D.map(d=>[d.k,d])), ff=Object.fromEntries(F.map(f=>[f.k,f]));
+    const lines=E.map(([f,d])=>{const a=ff[f],b=dd[d]; const y1=a.y-72,y2=b.y+60,my=(y1+y2)/2;
+      const p=sv(svg,'path',{d:`M${a.x},${y1} C${a.x},${my} ${b.x},${my} ${b.x},${y2}`,fill:'none',stroke:'#7aa9ff','stroke-width':4});const L=p.getTotalLength();p.setAttribute('stroke-dasharray',L);return {p,L,f,d};});
+    D.forEach(n=>{n.el=mkCard(nn,`left:${n.x-185}px;top:${n.y-60}px;width:370px;height:120px;padding:10px 14px;opacity:0;border-top:10px solid #27d3ff;text-align:center`,
+      `<div style="font-size:36px;font-weight:800;color:var(--ink);line-height:1.15">📖 ${n.zh}</div><div style="font-size:26px;font-weight:800;color:#1b8fd6;margin-top:4px">${n.n}</div>`);});
+    F.forEach(n=>{n.el=mkCard(nn,`left:${n.x-230}px;top:${n.y-72}px;width:460px;height:150px;padding:10px 14px;opacity:0;border-top:10px solid #ff9b4a;background:#fff7ee;text-align:center`,
+      `<div style="font-size:33px;font-weight:800;color:var(--ink);line-height:1.15">📒 ${n.zh}</div><div style="font-size:22px;font-weight:800;color:#c8581a;margin-top:6px;line-height:1.3;white-space:nowrap">${n.n}</div>`);});
+    const stat=document.createElement('div');stat.style.cssText='position:absolute;left:0;right:0;top:150px;text-align:center';
+    stat.innerHTML=['3 張事實表','4 張維度表','7 條關聯','68 個度量值'].map(m=>`<span style="display:inline-block;margin:0 12px;padding:6px 24px;border-radius:40px;background:rgba(39,211,255,.18);border:2px solid var(--cyan);font-size:32px;font-weight:800;opacity:0;white-space:nowrap">${m}</span>`).join('');nn.appendChild(stat);
+    const sp=[...stat.children];
+    const note=document.createElement('div');note.className='big';note.style.cssText='left:0;right:0;top:640px;text-align:center;font-size:34px;color:var(--gold);opacity:0';note.textContent='固定費用沒有連到「產品」→ 共同固定費用不分攤到產品';nn.appendChild(note);
+    const ms=document.createElement('div');ms.style.cssText='position:absolute;left:0;right:0;top:884px;text-align:center;font-size:36px;font-weight:800;opacity:0';
+    ms.innerHTML='＋ <span style="color:var(--orange)">68 個度量值</span>：邊際貢獻、保本營收、安全邊際…　所有頁面共用同一套定義';nn.appendChild(ms);
+    S.s11={el,label:'',upd:(tl,D2)=>{
+      const tF=.9,tD=.4,tE=ct('s11',5,-.2);
+      F.forEach((n,i)=>{const st=tF+i*.15,v=eOB((tl-st)/.5);n.el.style.opacity=clamp((tl-st)/.25);
+        const act=(n.k==='fx'&&tl>=ct('s11',6,-.2)&&tl<ct('s11',8,-.2));
+        n.el.style.transform=`scale(${(.7+.3*v)*(act?1.05:1)})`;n.el.style.boxShadow=act?'0 0 0 6px #ff9b4a,0 24px 60px rgba(0,0,0,.5)':'';});
+      D.forEach((n,i)=>{const st=tD+i*.12,v=eOB((tl-st)/.5);n.el.style.opacity=clamp((tl-st)/.25);n.el.style.transform=`scale(${.7+.3*v})`;});
+      lines.forEach((l,i)=>{const q=eIO(clamp((tl-tE-i*.1)/.9));const act=(l.f==='fx'&&tl>=ct('s11',6,-.2)&&tl<ct('s11',8,-.2));
+        l.p.setAttribute('stroke-dashoffset',l.L*(1-q));l.p.setAttribute('opacity',(act?1:.55)*q);l.p.setAttribute('stroke',act?'#ff9b4a':'#7aa9ff');l.p.setAttribute('stroke-width',act?7:4);});
+      sp.forEach((c,i)=>{const st=[ct('s11',3,-.2),ct('s11',4,-.2),ct('s11',5,-.2),ct('s11',8,-.2)][i];c.style.opacity=clamp((tl-st)/.3);c.style.transform=`translateY(${(1-eO((tl-st)/.4))*20}px)`;});
+      note.style.opacity=clamp((tl-ct('s11',6,-.1))/.4)*clamp((ct('s11',8,-.1)-tl)/.3);
+      const tm=ct('s11',8,-.2); ms.style.opacity=clamp((tl-tm)/.5); ms.style.transform=`translateY(${(1-eO((tl-tm)/.5))*20}px)`;
+    }}; }
+
+  /* s12 結尾 */
+  { const el=document.createElement('div'); el.className='scene';
+    el.innerHTML=`<div id="s12w"></div>
+    <div class="big" id="s12h" style="left:760px;top:90px;font-size:62px;line-height:1.2;opacity:0">不只是一條保本線，<br>而是想清楚<span style="color:var(--orange)">哪一項在拖累利潤</span></div>
+    <div id="s12c"></div>
+    <div id="s12t" style="position:absolute;left:60px;top:890px;width:1800px;padding:12px 28px;border-radius:20px;background:rgba(7,13,43,.78);border:2px solid rgba(169,196,255,.5);font-size:23px;line-height:1.45;color:#e6eeff;opacity:0">
+      <b style="color:var(--gold)">畫面與資料：</b>公開發佈的 Power BI 報告（封面署名 @Ken.Liu）；資料為示範（模擬）資料，不代表任何真實公司。
+      <b style="color:var(--gold)">　介紹文章：</b>〈賣多少才不虧？這個 Power BI 量本利分析把保本點算清楚了〉（簡體轉繁體）。</div>`;
+    host.appendChild(el); const w=el.querySelector('#s12w'), cc=el.querySelector('#s12c'); const th=[];
+    for(let i=0;i<6;i++){const d=document.createElement('div');d.className='card';d.style.cssText=`left:${60+(i%3)*226}px;top:${110+Math.floor(i/2*0)+Math.floor(i/3)*(280+14)}px;width:212px;height:280px;padding:6px;opacity:0;overflow:hidden`;
+      d.innerHTML=`<div style="width:200px;height:215px;overflow:hidden;border-radius:8px;background:#0d1642"><img src="${IMG(i)}" style="width:100%;display:block"></div><div style="font-size:19px;font-weight:800;color:var(--ink);line-height:1.2;margin-top:4px"><span style="color:#e9792f">${i?'第'+i+'頁':'封面'}</span> ${PAGES[i]}</div>`;w.appendChild(d);th.push(d);}
+    const K=[['收入','賣多少、賣什麼價','#27d3ff'],['成本結構','變動成本的比例','#ff9b4a'],['固定投入','租金、折舊、人員','#5ee0c0']];
+    const kc=K.map((k,i)=>mkCard(cc,`left:${760+i*370}px;top:300px;width:350px;height:130px;padding:14px 20px;opacity:0;border-top:10px solid ${k[2]}`,`<div style="font-size:42px;font-weight:800">${k[0]}</div><div style="font-size:23px;color:#4a5f9a;margin-top:4px">${k[1]}</div>`));
+    const CP=[['原生頁面','透明','參數、DAX、圖表都在 Power BI 內，每個數字可逐項複核','#27d3ff'],['HTML 頁面','絲滑','輸入、曲線、判斷在同一個工作區，調整時立刻看到結果','#ff9b4a']];
+    const cp=CP.map((c,i)=>mkCard(cc,`left:${760+i*550}px;top:480px;width:530px;height:330px;padding:20px 26px;opacity:0;border-top:12px solid ${c[3]}`,
+      `<div style="font-size:30px;font-weight:800;color:#4a5f9a">${c[0]}</div><div style="font-size:88px;font-weight:800;color:#0b1a52;line-height:1.1">${c[1]}</div><div style="font-size:29px;font-weight:700;color:#c8581a;margin-top:8px;line-height:1.35">${c[2]}</div>`));
+    S.s12={el,label:'',upd:(tl,D)=>{
+      th.forEach((c,i)=>{const st=-.15+i*.07,v=eOB((tl-st)/.5);c.style.opacity=clamp((tl-st)/.25);c.style.transform=`translateY(${(1-v)*60}px)`;});
+      const h=el.querySelector('#s12h'),th0=.2;h.style.opacity=clamp((tl-th0)/.4);h.style.transform=`translateY(${(1-eO((tl-th0)/.6))*24}px)`;
+      kc.forEach((c,i)=>{const st=1.4+i*.25,v=eOB((tl-st)/.5);c.style.opacity=clamp((tl-st)/.3);c.style.transform=`translateY(${(1-v)*40}px)`;});
+      cp.forEach((c,i)=>{const st=ct('s12',5+i*2,-.2),v=eOB((tl-st)/.5),act=tl>=st&&tl<st+(i?4:3.2),pre=.32*clamp((tl-3.0-i*.2)/.5);c.style.opacity=Math.max(pre,clamp((tl-st)/.3));c.style.transform=`translateY(${(1-Math.max(v,clamp((tl-3.0-i*.2)/.5)))*50}px) scale(${act?1.03:1})`;c.style.boxShadow=act?'0 0 0 6px #ff9b4a,0 22px 60px rgba(0,0,0,.4)':'';});
+      el.querySelector('#s12t').style.opacity=clamp((tl-ct('s12',9,-.2))/.5);
+    }}; }
+
+  TL.scenes.forEach(s=>{const o=S[s.k];o.el.id='sc_'+s.k;host.appendChild(o.el);});
+}
+
+window.init=async function(tl){
+  TL=tl; TL.scenes.forEach(s=>{SC[s.k]={sc:s,cl:clausesOf(s)};}); build();
+  await Promise.all([...document.images].map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r;})));
+  await document.fonts.ready; return {scenes:TL.scenes.length,total:TL.total};
+};
+window.render=function(t){
+  const OV=.25; let label='',pgl='';
+  TL.scenes.forEach((sc,idx)=>{ const o=S[sc.k], tl=t-sc.T; const el=o.el;
+    if(tl<-OV-.01||tl>sc.D+.01){el.style.display='none';return;} el.style.display='block';
+    const ein=eO((tl+OV)/(OV+.12)), eout=clamp((sc.D-tl)/OV); const last=idx===TL.scenes.length-1;
+    el.style.opacity=(idx===0?1:ein)*(last?1:eout);
+    el.style.transform=`translateY(${(idx===0?0:(1-ein)*18)}px)`;
+    o.upd(Math.max(0,tl),sc.D); if(tl>=.3&&tl<sc.D-.3){label=(idx+1)+' / '+TL.scenes.length; pgl=o.label||'';}
+  });
+  document.getElementById('step').textContent=label;
+  const pg=document.getElementById('pg'); pg.textContent=pgl; pg.style.opacity=pgl?1:0;
+  let txt=''; let vis=0; TL.scenes.forEach(sc=>{const tl=t-sc.T; if(tl<0||tl>sc.D) return; SC[sc.k].cl.forEach(s=>{if(tl>=s.t0&&tl<s.t1){txt=s.text;vis=clamp((tl-s.t0)/.15)*clamp((s.t1-tl)/.12+.2);}});});
+  const sp=document.querySelector('#sub span'); sp.textContent=txt; sp.style.opacity=txt?vis:0; sp.style.display=txt?'inline-block':'none';
+  document.getElementById('grid').style.transform=`translate(${-(t*6)%80}px,${-(t*4)%80}px)`;
+  document.getElementById('o1').style.transform=`translate(${Math.sin(t*.2)*60}px,${Math.cos(t*.17)*40}px)`;
+  document.getElementById('o2').style.transform=`translate(${Math.cos(t*.15)*50}px,${Math.sin(t*.21)*40}px)`;
+  document.getElementById('prog').style.width=(100*t/TL.total)+'%';
+};
+</script></body></html>
