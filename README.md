@@ -1,6 +1,6 @@
 # Power BI 量本利分析 · 圖解導覽
 
-給「完全不懂 Power BI、也不熟成本會計」的人看的導覽：一支 **5 分 20 秒旁白影片** ＋ 一個 **零基礎互動圖解頁**，把一份「量本利分析」Power BI 報告（6 頁）拆開來講——**賣多少，才不虧？**
+給「完全不懂 Power BI、也不熟成本會計」的人看的導覽：一支 **5 分 20 秒旁白影片** ＋ 一支 **3 分 30 秒動畫版**（《賣多少，才不虧？》，獨立專案 [powerbi-cvp-animation](https://github.com/jamic710808/powerbi-cvp-animation)）＋ 一個 **零基礎互動圖解頁**，把一份「量本利分析」Power BI 報告（6 頁）拆開來講——**賣多少，才不虧？**
 
 > 資料為**示範（模擬）資料**，不代表任何真實公司。畫面擷取自線上公開發佈的 Power BI 報告（Publish to web，2026-10-11；封面署名 @Ken.Liu）。本專案為學習／導覽用整理，非原作者製作。
 
@@ -11,7 +11,7 @@
 | Vercel | https://powerbi-cvp-explainer.vercel.app | 影片載入最快，建議對外分享用這個 |
 | GitHub Pages | https://jamic710808.github.io/powerbi-cvp-guide/ | 來源是 `gh-pages` 分支 |
 
-互動頁含：影片章節跳轉、量・價・本・利四張卡、**可拖動的保本模擬器**、公司層／單品層、6 頁熱點說明、原生 vs HTML 對照、一筆數字的資料旅程、星狀模型（點節點亮起關聯）、口徑翻卡（真實 DAX）、68 個度量值分佈、小字典，以及「已確認事實」與「觀察／待確認」兩欄。
+互動頁含：兩支影片（導覽影片、動畫版）的章節跳轉、量・價・本・利四張卡、**可拖動的保本模擬器**、公司層／單品層、6 頁熱點說明、原生 vs HTML 對照、一筆數字的資料旅程、星狀模型（點節點亮起關聯）、口徑翻卡（真實 DAX）、68 個度量值分佈、小字典，以及「已確認事實」與「觀察／待確認」兩欄。
 
 ## 報告在回答什麼
 
@@ -55,14 +55,14 @@ film/
   stage.html             影片舞台：render(t) 是時間的純函式
   render.js              逐格截圖＋ffmpeg 合成
   mkaudio.py             程式合成配樂與轉場音效、混音
-site/                    部署用：index.html、poster.jpg、assets/（film.mp4 見下）
+site/                    部署用：index.html、poster.jpg、anim-poster.jpg、assets/（film.mp4、animation.mp4 見下）；動畫版影片與封面由 build_site.py 從 ../cvp-animation/site 複製
 qa_site.js               互動頁的互動與錯誤檢查
 ```
 
 ## 分支說明
 
-- `main`：研究與製作紀錄（本分支）。**不含 `film.mp4`**（約 35 MB），避免影片進歷史。
-- `gh-pages`：網站檔案（`index.html`、`film.mp4`、`poster.jpg`、`assets/`）＋ `.nojekyll`，GitHub Pages 由此發佈。
+- `main`：研究與製作紀錄（本分支）。**不含 `film.mp4`**（約 35 MB）與動畫版 `animation.mp4`（約 14 MB），避免影片進歷史。
+- `gh-pages`：網站檔案（`index.html`、`film.mp4`、`poster.jpg`、`animation.mp4`、`anim-poster.jpg`、`assets/`）＋ `.nojekyll`，GitHub Pages 由此發佈。
 - 也沒有提交：母檔 `out_v*.mp4`（約 80 MB）、`mix*.wav`、`vo44/`、線上擷圖 `online/`——都可由腳本重現。
 
 ## 重新製作
@@ -87,7 +87,8 @@ cd .. && python build_site.py                     # 8. 建頁 → site/index.htm
 ## 已知限制
 
 - 獨立評審只看了 44 個抽樣畫格，兩格之間的瞬間與音訊質感未評；**旁白沒有經過人工聆聽**，數字讀法請自行確認。
-- 影片結尾字卡仍有「（簡體轉繁體）」字樣（互動頁已刪除）。
+- 導覽影片結尾字卡仍有「（簡體轉繁體）」字樣（互動頁已刪除）。
+- 動畫版人物與劇情為虛構；其來源專案的驗收限制（沒有逐幀播放、旁白未經人工聆聽、無第二位評審）見 [powerbi-cvp-animation](https://github.com/jamic710808/powerbi-cvp-animation) 的 `review.md`。
 - 配樂為程式合成，未另外找現成曲目。
 - 畫面取自線上公開發佈版；本機 .pbip 在 Desktop 中有未儲存變更，原生圖表頁在 Desktop 截圖時未渲染，故不用 Desktop 截圖。
 
