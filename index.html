@@ -189,7 +189,7 @@ footer{padding:50px 0 70px;color:var(--mut);font-size:14px}
 </head>
 <body>
 <nav><div class="wrap"><b>量本利 · Power BI</b>
-<a href="#top">全貌</a><a href="#film">影片</a><a href="#four">四個字</a><a href="#sim">保本模擬器</a><a href="#layers">兩層</a><a href="#pages">六個頁面</a><a href="#vs">原生vsHTML</a><a href="#journey">資料旅程</a><a href="#star">模型</a><a href="#defs">口徑</a><a href="#measures">度量值</a><a href="#glossary">小字典</a><a href="#notes">注意事項</a><a href="#run">自己打開</a>
+<a href="#top">全貌</a><a href="#film">影片</a><a href="#anim">動畫</a><a href="#four">四個字</a><a href="#sim">保本模擬器</a><a href="#layers">兩層</a><a href="#pages">六個頁面</a><a href="#vs">原生vsHTML</a><a href="#journey">資料旅程</a><a href="#star">模型</a><a href="#defs">口徑</a><a href="#measures">度量值</a><a href="#glossary">小字典</a><a href="#notes">注意事項</a><a href="#run">自己打開</a>
 <button id="theme" aria-label="切換深淺色">🌓 深／淺</button></div></nav>
 
 <main class="wrap" id="top">
@@ -216,6 +216,15 @@ footer{padding:50px 0 70px;color:var(--mut);font-size:14px}
  <div class="card vid"><video id="vid" controls preload="metadata" playsinline poster="poster.jpg"><source src="film.mp4" type="video/mp4">你的瀏覽器不支援影片播放。</video></div>
  <div class="chips" id="chips"></div>
  <p class="hint">旁白：Gemini TTS（Kore）；配樂為程式合成的柔和鋼琴與音墊（無版權疑慮）。旁白若有誤讀，以畫面字幕為準。</p>
+</section>
+
+<!-- ANIMATION -->
+<section id="anim">
+ <h2><small>🎬</small>動畫版　3 分半，用一個小故事講完保本點</h2>
+ <p class="lead">同一份報告，換成月會上的小故事：老闆問「賣多少才不虧」，財務小琪用水桶、保本線和旗艦君回答。數字與公式同上方導覽影片一致。</p>
+ <div class="card vid"><video id="vid2" controls preload="metadata" playsinline poster="anim-poster.jpg"><source src="animation.mp4" type="video/mp4">你的瀏覽器不支援影片播放。</video></div>
+ <div class="chips" id="chips2"></div>
+ <p class="hint">畫風：扁平插畫＋動態圖表；旁白：Gemini TTS（Kore）；配樂為程式合成。「每 100 元」的拆解是推算值，畫面已標示；二月利潤為負的原因報表沒說，動畫不下結論。<b>人物與劇情為虛構</b>，資料為示範（模擬）資料。<a href="https://github.com/jamic710808/powerbi-cvp-animation" target="_blank" rel="noopener">動畫專案原始碼 ↗</a></p>
 </section>
 
 <!-- FOUR -->
@@ -380,7 +389,7 @@ footer{padding:50px 0 70px;color:var(--mut);font-size:14px}
  <p class="hint">資料夾 data_tw 裡的 CSV 就是模型的資料來源；改路徑參數後重新整理即可。</p>
 </section>
 
-<footer>畫面取自公開發佈的 Power BI 報告（封面署名 @Ken.Liu）；資料為示範（模擬）資料，不代表任何真實公司。本頁整理自介紹文章〈賣多少才不虧？這個 Power BI 量本利分析把保本點算清楚了〉。</footer>
+<footer>畫面取自公開發佈的 Power BI 報告（封面署名 @Ken.Liu）；資料為示範（模擬）資料，不代表任何真實公司。本頁整理自介紹文章〈賣多少才不虧？這個 Power BI 量本利分析把保本點算清楚了〉。動畫版的人物與劇情為虛構。</footer>
 </main>
 
 <div id="lb" role="dialog" aria-label="圖片放大"><button class="x" aria-label="關閉">×</button><img alt=""></div>
@@ -406,9 +415,12 @@ const secs=$$('section');const nio=new IntersectionObserver(es=>es.forEach(e=>{i
 
 /* film chapters（秒數＝影片場景起點，與 film/timeline.json 一致） */
 const CH=[["開場", 0.0], ["量價本利", 14.4], ["保本公式", 42.1], ["兩層分析", 74.4], ["首頁", 102.2], ["第1頁 經營概覽", 108.3], ["第2頁 原生", 143.7], ["第3頁 HTML", 186.6], ["第4頁 單品", 211.1], ["第5頁 口徑", 241.6], ["資料模型", 272.0], ["結語", 290.2]];
+const CH2=[["月會", 0.0], ["量價本利", 12.5], ["保本線", 44.5], ["兩層六頁", 73.3], ["經營概覽", 84.4], ["公司層", 103.3], ["旗艦君", 132.3], ["口徑與模型", 165.5], ["回到會議室", 183.7]];
 const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
 $('#chips').innerHTML=CH.map(c=>`<button class="chip" data-t="${c[1]}"><small>${fmt(c[1])}</small>${c[0]}</button>`).join('');
-$$('.chip').forEach(b=>b.onclick=()=>{const v=$('#vid');v.currentTime=+b.dataset.t;v.play().catch(()=>{});v.scrollIntoView({block:'center',behavior:'smooth'})});
+$$('#chips .chip').forEach(b=>b.onclick=()=>{const v=$('#vid');v.currentTime=+b.dataset.t;v.play().catch(()=>{});v.scrollIntoView({block:'center',behavior:'smooth'})});
+$('#chips2').innerHTML=CH2.map(c=>`<button class="chip" data-t="${c[1]}"><small>${fmt(c[1])}</small>${c[0]}</button>`).join('');
+$$('#chips2 .chip').forEach(b=>b.onclick=()=>{const v=$('#vid2');v.currentTime=+b.dataset.t;v.play().catch(()=>{});v.scrollIntoView({block:'center',behavior:'smooth'})});
 
 /* 四個字 */
 const FC=[
